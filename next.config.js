@@ -20,7 +20,7 @@ const nextConfig = {
     const fileLoaderRule = config.module.rules.find((rule) =>
       rule.test?.test?.('.svg'),
     )
-
+    config.externals.push('pino-pretty', /* add any other modules that might be causing the error */);
     config.module.rules.push(
       // Reapply the existing rule, but only for svg imports ending in ?url
       {
