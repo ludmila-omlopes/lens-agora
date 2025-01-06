@@ -1,8 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+//import { Geist, Geist_Mono } from "next/font/google";
+import { Abel, Inter } from 'next/font/google'
 import "./globals.css";
+import { Web3Provider } from "./Web3Provider";
+import { Nav } from "../../components/nav";
+import { ThirdwebProvider } from "thirdweb/react";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import Footer from "../../components/Footer";
+import Header from "@/components/Header";
 
-const geistSans = Geist({
+/*const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
@@ -10,7 +17,9 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-});
+});*/
+
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -24,10 +33,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+      <body className={inter.className}>
+        <ThirdwebProvider>
+          <Web3Provider>
+            <ThemeProvider>
+              <div className="flex flex-col min-h-screen">
+                <Header />
+                <main className="flex-grow">
+                  {children}
+                </main>
+                <Footer />
+              </div>
+            </ThemeProvider>
+          </Web3Provider>
+        </ThirdwebProvider>
       </body>
     </html>
   );

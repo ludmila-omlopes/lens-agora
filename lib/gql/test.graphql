@@ -1,0 +1,22 @@
+
+query TestQuery() {
+      posts(request: { pageSize: TEN }) {
+        items {
+          id
+          author {
+            username {
+              value
+            }
+          }
+          metadata {
+            ... on TextOnlyMetadata {
+              content
+            }
+          }
+        }
+        pageInfo {
+          prev
+          next
+        }
+      }
+    }
