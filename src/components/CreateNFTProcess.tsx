@@ -76,9 +76,9 @@ export default function CreateNFTProcess() {
 
       // Query the contract type
       const collection = await getCurrentCollection({contractAdd: contractAddress});
+    if(collection && collection.is1155)
+    {setContractType("1155");}
       if (collection) {
-        setContractType("1155");
-        console.log('Contract type:', collection.is1155);
         setStep(2); // Proceed to Step 2
       } else {
         throw new Error('Failed to determine contract type.');
@@ -107,7 +107,6 @@ export default function CreateNFTProcess() {
     }
     setLoading(true);
     try { //todo: colocar atributos
-        console.log("new nft:", nftDetails)
  
         const contractAddress = contractChoice === 'new' ? newContractAddress : selectedContract;
         if (!contractAddress) {
@@ -171,7 +170,6 @@ useEffect(() => {
                 console.error("Failed to fetch contracts:", response.statusText);
                 return [];
             }
-            console.log("response", response)
             return response.json();
         };
 
@@ -179,7 +177,6 @@ useEffect(() => {
             const fetchedContracts = await fetchContracts();
             if(fetchedContracts){
                     setContracts(fetchedContracts.contracts);
-                    console.log("contracts", fetchedContracts.contracts)
             }
     };
 
@@ -194,6 +191,11 @@ useEffect(() => {
         </CardTitle>
       </CardHeader>
       <CardContent>
+      {!account && (
+        <div className="text-red-500 mb-4">
+            Please connect your wallet to proceed.
+        </div>
+    )}
         {step === 1 ? (
           <div className="space-y-6">
             <RadioGroup defaultValue="new" onValueChange={(value) => handleContractChoice(value as 'new' | 'existing')}>
@@ -264,7 +266,8 @@ useEffect(() => {
                   onChange={handleInputChange}
                 />
               </div>*/}
-              {contractType === '1155' && ( // Conditional rendering for ERC1155
+              {contractType && contractType === '1155' && ( 
+                console.log("contractType:", contractType),
                 <div>
                     <Label htmlFor="supply">Supply</Label>
                     <Input
@@ -283,7 +286,9 @@ useEffect(() => {
                 <Label>Upload Image or Video</Label>
                 <FileUpload onFileSelect={handleFileSelect} />
               </div>
-              <Button type="submit">{loading ? 'Minting...Please Wait' : 'Mint NFT'}</Button>
+              <Button type="submit" disabled={!account || loading}>
+                {loading ? 'Minting...Please Wait' : 'Mint NFT'}
+              </Button>
             </form>
           )}
       </CardContent>

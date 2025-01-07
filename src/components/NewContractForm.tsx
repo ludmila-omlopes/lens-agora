@@ -139,7 +139,7 @@ export default function NewContractForm({ onContractSubmit }: { onContractSubmit
                 <Label>Upload Contract Image or Video</Label>
                 <FileUpload onFileSelect={handleFileSelect} />
             </div>
-            <Button type="submit" className="w-full text-lg py-6">{loading ? 'Deploying...Please Wait' : 'Deploy Contract'}</Button>
+            <Button type="submit" disabled={!account || loading} className="w-full text-lg py-6">{loading ? 'Deploying...Please Wait' : 'Deploy Contract'}</Button>
         </form>
     )
 }
