@@ -27,7 +27,7 @@ export default function GroupsHighlight() {
   return (
     <section className="py-20 bg-gray-100 dark:bg-gray-800">
       <div className="container mx-auto px-4">
-        <h2 className="text-4xl font-bold text-center mb-8 text-gray-800 dark:text-white">Exclusive NFT Groups</h2>
+        <h2 className="text-4xl font-bold text-center mb-8 text-gray-800 dark:text-white">Exclusive Groups</h2>
         <p className="text-center text-xl mb-12 text-gray-600 dark:text-gray-300">
           Connect with fellow collectors and join exclusive communities to participate in collective buying opportunities.
         </p>

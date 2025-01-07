@@ -10,6 +10,7 @@ export type Collection = {
     type: string;
     owner: string;
     symbol: string;
+    is1155: boolean;
 };
 
 export type MarketplaceInfo = {

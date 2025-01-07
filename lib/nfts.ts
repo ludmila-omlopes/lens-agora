@@ -45,6 +45,7 @@ export async function getCurrentNFT({ contractAdd, tokenId }: { contractAdd: str
     return null;
 }
 
+//todo: adicionar o tipo do contrato
 export async function getCurrentCollection({ contractAdd }: { contractAdd: string }) {
   const contract = getContract({
     client: thirdwebClientServer,
@@ -66,6 +67,8 @@ export async function getCurrentCollection({ contractAdd }: { contractAdd: strin
     method: "function contractURI() view returns (string)",
     params: [],
   });
+
+  const ismultiNFT = await isERC1155({ contract });
 
 const contractMetadata = resolveScheme({uri: contractMetadataURI!, client: thirdwebClientServer});
 const metadataResponse = await fetch(contractMetadata);
@@ -99,6 +102,7 @@ const socialLinks = metadata.links;
     description: description,
     imageUrl: imageURL,
     symbol: contractSymbol,
+    is1155: ismultiNFT,
   } as Collection;
 
   return collection;

@@ -1,14 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useTheme } from '@/app/contexts/ThemeContext'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Collection } from '../../../../lib/types'
-import { NFT } from 'thirdweb'
-import { getNFTMediaURL } from '../../../../lib/nfts'
 
 // Mock data for the collection
 const collectionData = {
@@ -30,36 +28,36 @@ const nfts = [
   // Add more NFTs as needed
 ]
 
-export default function CollectionDetails({collectionContract, firstNFTs}: {collectionContract: Collection, firstNFTs: NFT[]}) {
+export default function CollectionDetails({ id }: { id: string }) {
   const { theme } = useTheme()
   const [activeTab, setActiveTab] = useState('items')
 
   return (
     <div className="space-y-8">
       <div className="relative h-64 rounded-lg overflow-hidden">
-        <img className='object-none object-center'
-          src={collectionContract.imageUrl}
-          alt={`${collectionContract.name} banner`}
-          //layout="fill"
-          //objectFit="cover"
+        <Image
+          src={collectionData.bannerImage}
+          alt={`${collectionData.name} banner`}
+          layout="fill"
+          objectFit="cover"
         />
       </div>
       
       <div className="flex items-center space-x-4">
-        <img
-          src={collectionContract.imageUrl}
-          alt={`${collectionContract.name} logo`}
+        <Image
+          src={collectionData.profileImage}
+          alt={`${collectionData.name} logo`}
           width={100}
           height={100}
           className="rounded-full border-4 border-white dark:border-gray-800"
         />
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">{collectionContract.name}</h1>
-          <p className="text-gray-600 dark:text-gray-300">Created by {collectionContract.owner}</p>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">{collectionData.name}</h1>
+          <p className="text-gray-600 dark:text-gray-300">Created by {collectionData.creator}</p>
         </div>
       </div>
 
-      <p className="text-gray-700 dark:text-gray-300">{collectionContract.description}</p>
+      <p className="text-gray-700 dark:text-gray-300">{collectionData.description}</p>
 
       <div className="grid grid-cols-3 gap-4">
         <Card className={theme === 'dark' ? 'bg-gray-800' : 'bg-white'}>
@@ -89,21 +87,21 @@ export default function CollectionDetails({collectionContract, firstNFTs}: {coll
         </TabsList>
         <TabsContent value="items">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-            {firstNFTs.map((nft) => (
+            {nfts.map((nft) => (
               <Link href={`/nft/${nft.id}`} key={nft.id}>
                 <Card className={`${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'} transition-colors duration-200`}>
                   <CardContent className="p-4">
                     <div className="aspect-square relative mb-2">
-                      <img
-                        src={getNFTMediaURL(nft)}
-                        alt={nft.metadata.name}
-                        //layout="fill"
-                        //objectFit="cover"
+                      <Image
+                        src={nft.image}
+                        alt={nft.name}
+                        layout="fill"
+                        objectFit="cover"
                         className="rounded-lg"
                       />
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white">{nft.metadata.name}</h3>
-                    {/*<p className="text-gray-600 dark:text-gray-300">{nft.price}</p>*/}
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white">{nft.name}</h3>
+                    <p className="text-gray-600 dark:text-gray-300">{nft.price}</p>
                   </CardContent>
                 </Card>
               </Link>
@@ -111,7 +109,7 @@ export default function CollectionDetails({collectionContract, firstNFTs}: {coll
           </div>
         </TabsContent>
         <TabsContent value="activity">
-          <p className="text-gray-700 dark:text-gray-300 mt-4">Recent activity will be displayed here soon.</p>
+          <p className="text-gray-700 dark:text-gray-300 mt-4">Recent activity will be displayed here.</p>
         </TabsContent>
       </Tabs>
     </div>

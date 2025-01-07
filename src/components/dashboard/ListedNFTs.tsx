@@ -26,6 +26,7 @@ export default function ListedNFTs() {
             collection: listing.assetContractAddress,
             price: listing.pricePerToken,
             endTime: listing.endTimeInSeconds,
+            nftid: listing.asset.id,
           }));
           setListedNFTs(nfts);
         } catch (error) {
@@ -68,7 +69,7 @@ export default function ListedNFTs() {
 </CardContent>
           <CardFooter className="p-4 pt-0 flex justify-between items-center">
             <Button variant="outline" size="sm">Cancel Listing</Button>
-            <Link href={`/nft/${nft.id}`} className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300">
+            <Link href={`/items/${nft.collection}/${nft.nftid}`} className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300">
               View Details
             </Link>
           </CardFooter>

@@ -23,6 +23,7 @@ import CountdownTimer from '@/components/CountdownTimer'
 
 //todo: testar listing agendada
 //todo: cancel listing
+//todo: se item ja teve listagem cancelada, vai ter mais de uma. tem q processar todas.
 export default function NFTDetails({  nft,
     collection,
     marketplaceInfo }: { nft: NFT;
@@ -117,7 +118,7 @@ const [listingDetails, setListingDetails] = useState({
               </div>
             </div>
             <div className="text-gray-800 dark:text-white">
-              <Link href={`/items/${collection.address}/${nft.id}`} className="inline-flex items-center text-pink-400 hover:text-pink-300 mb-2">
+              <Link href={`/items/${collection.address}`} className="inline-flex items-center text-pink-400 hover:text-pink-300 mb-2">
                 <span>{collection.name}</span>
                 <ExternalLink className="ml-2 h-4 w-4" />
               </Link>
@@ -158,11 +159,11 @@ const [listingDetails, setListingDetails] = useState({
               </div>
               )}
               <div className="flex space-x-4">
-              {!marketplaceInfo && isOwner && (
+              {(!marketplaceInfo || marketplaceInfo.listing.status === "CANCELLED") && isOwner && (
                 <Button  onClick={() => setIsDialogOpen(true)} className="flex-1 bg-pink-500 hover:bg-pink-600 text-gray-800 dark:text-white">List for Sale</Button>
               )}
               {
-                marketplaceInfo && marketplaceInfo.listing && isOwner && (
+                marketplaceInfo && marketplaceInfo.listing && marketplaceInfo.listing.status != "CANCELLED" && isOwner && (
                     <Button  onClick={() => console.log('Cancel listing logic')} className="flex-1 bg-pink-500 hover:bg-pink-600 text-gray-800 dark:text-white">Cancel Listing</Button>
                 )}
                 { marketplaceInfo && marketplaceInfo.listing && marketplaceInfo.listing.status === 'ACTIVE' && !isOwner && (
@@ -226,6 +227,7 @@ const [listingDetails, setListingDetails] = useState({
     </DialogHeader>
     <div className="space-y-4">
       {/* Price Input */}
+      Price
       <input
         type="text"
         name="price"
@@ -235,7 +237,7 @@ const [listingDetails, setListingDetails] = useState({
         onChange={handleInputChange}
       />
 
-      {/* Start Time Input */}
+      {/* Start Time Input 
       <input
         type="datetime-local"
         name="startTime"
@@ -243,7 +245,7 @@ const [listingDetails, setListingDetails] = useState({
         className="w-full p-2 border rounded"
         value={listingDetails.startTime}
         onChange={handleInputChange}
-      />
+      />*/}
 
       {/* Add End Date Checkbox */}
       <div className="flex items-center space-x-2">
@@ -292,6 +294,7 @@ const [listingDetails, setListingDetails] = useState({
       </select>
 
       {/* Quantity Input */}
+      Quantity
       <input
         type="number"
         name="quantity"
@@ -313,7 +316,7 @@ const [listingDetails, setListingDetails] = useState({
         tokenId={nft.id}
         assetContractAddress={collection.address}
         pricePerToken={listingDetails.price.toString()}
-        startTimestamp={new Date(listingDetails.startTime)}
+        //startTimestamp={new Date(listingDetails.startTime)}
         endTimestamp={listingDetails.endTime ? new Date(listingDetails.endTime) : undefined}
         currencyContractAddress={undefined} // Replace with actual address for the selected currency
         quantity={BigInt(listingDetails.quantity)}

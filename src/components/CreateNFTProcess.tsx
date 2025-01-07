@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTheme } from '@/app/contexts/ThemeContext'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -11,18 +11,15 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import NewContractForm from './NewContractForm'
-import { createNFTContract, mintNewNFT } from '../../lib/nfts'
+import { createNFTContract, getCurrentCollection, mintNewNFT } from '../../lib/nfts'
 import { useActiveAccount } from 'thirdweb/react'
 import FileUpload from './FileUpload'
 
-// Mock data for existing contracts
-const existingContracts = [
-  { id: '1', name: 'My First Collection' },
-  { id: '2', name: 'Exclusive Art Series' },
-  { id: '3', name: 'Limited Edition Collectibles' },
-]
+//todo: no step 2, mostrar o nome da collection. Já tem o objeto pronto.
+//todo: depois de mintar o NFT, mostrar alguma mensagem de sucesso e redirecionar a pagina
 
 export default function CreateNFTProcess() {
+
   const { theme } = useTheme()
   const [step, setStep] = useState(1)
   const [contractChoice, setContractChoice] = useState<'new' | 'existing'>('new')
@@ -31,18 +28,22 @@ export default function CreateNFTProcess() {
   const [newContractAddress, setNewContractAddress] = useState<string | null>(null);
   const account = useActiveAccount();
   const [loading, setLoading] = useState(false);
+  const [contractType, setContractType] = useState<string | null>(null);
   const { toast } = useToast()
   const [nftDetails, setNftDetails] = useState({
     name: '',
     description: '',
     attributes: '',
     file: null as File | null,
+    supply: 1,
   });
+
+  const [contracts, setContracts] = useState<any[]>([]);
 
   const handleContractChoice = (value: 'new' | 'existing') => {
     setContractChoice(value)
     if (value === 'existing') {
-      setSelectedContract(existingContracts[0].id)
+      setSelectedContract('')
     } else {
       setSelectedContract('')
     }
@@ -55,17 +56,44 @@ export default function CreateNFTProcess() {
 
   }
 
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
     if (contractChoice === 'new' && !isContractSubmitted) {
       toast({
-        title: "Contract Not Submitted",
-        description: "Please submit your contract before proceeding to mint NFTs.",
-        variant: "destructive",
-      })
-      return
+        title: 'Contract Not Submitted',
+        description: 'Please submit your contract before proceeding to mint NFTs.',
+        variant: 'destructive',
+      });
+      return;
     }
-    setStep(2)
-  }
+
+    try {
+      setLoading(true);
+
+      const contractAddress = contractChoice === 'new' ? newContractAddress : selectedContract;
+      if (!contractAddress) {
+        throw new Error('No contract address available.');
+      }
+
+      // Query the contract type
+      const collection = await getCurrentCollection({contractAdd: contractAddress});
+      if (collection) {
+        setContractType("1155");
+        console.log('Contract type:', collection.is1155);
+        setStep(2); // Proceed to Step 2
+      } else {
+        throw new Error('Failed to determine contract type.');
+      }
+    } catch (error) {
+      console.error('Error fetching contract type:', error);
+      toast({
+        title: 'Error',
+        description: 'Unable to determine contract type. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleMintNFT = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,11 +113,10 @@ export default function CreateNFTProcess() {
         if (!contractAddress) {
           throw new Error('No contract address available for minting.');
         }
-        console.log("this contract: ", contractAddress)
       const response = await mintNewNFT({
         contractAdd: contractAddress,
         name: nftDetails.name,
-        quantity: 1n,
+        quantity: BigInt(nftDetails.supply),
         description: nftDetails.description,
         mintToAdd: account.address,
         account: account,
@@ -105,6 +132,7 @@ export default function CreateNFTProcess() {
         description: '',
         attributes: '',
         file: null,
+        supply: 1
       });
     } catch (error) {
       console.error('Error minting NFT:', error);
@@ -126,6 +154,37 @@ export default function CreateNFTProcess() {
   const handleFileSelect = (file: File) => {
     setNftDetails((prev) => ({ ...prev, file }));
   };
+
+  
+useEffect(() => {
+    if (!account) return;
+
+    const fetchContracts = async () => {
+            const response = await fetch(`/api/listContractsByAddress?address=${account.address}`, {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                });
+    
+            if (!response.ok) {
+                console.error("Failed to fetch contracts:", response.statusText);
+                return [];
+            }
+            console.log("response", response)
+            return response.json();
+        };
+
+    const fetchAndSetContracts = async () => {
+            const fetchedContracts = await fetchContracts();
+            if(fetchedContracts){
+                    setContracts(fetchedContracts.contracts);
+                    console.log("contracts", fetchedContracts.contracts)
+            }
+    };
+
+    fetchAndSetContracts();
+}, [account]);
 
   return (
     <Card className={theme === 'dark' ? 'bg-gray-800' : 'bg-white'}>
@@ -153,10 +212,10 @@ export default function CreateNFTProcess() {
                 <SelectTrigger>
                   <SelectValue placeholder="Select a contract" />
                 </SelectTrigger>
-                <SelectContent>
-                  {existingContracts.map((contract) => (
-                    <SelectItem key={contract.id} value={contract.id}>
-                      {contract.name}
+                <SelectContent> 
+                  {contracts.map((contract) => (
+                    <SelectItem key={contract.contract_address} value={contract.contract_address}> 
+                      {contract.contract_address } {/* todo: colocar o nome do contrato no bd */}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -195,7 +254,7 @@ export default function CreateNFTProcess() {
                   required
                 />
               </div>
-              <div>
+              {/*<div>
                 <Label htmlFor="attributes">Attributes (optional)</Label>
                 <Textarea
                   id="attributes"
@@ -204,7 +263,22 @@ export default function CreateNFTProcess() {
                   value={nftDetails.attributes}
                   onChange={handleInputChange}
                 />
-              </div>
+              </div>*/}
+              {contractType === '1155' && ( // Conditional rendering for ERC1155
+                <div>
+                    <Label htmlFor="supply">Supply</Label>
+                    <Input
+                    id="supply"
+                    name="supply"
+                    type="number"
+                    min="1"
+                    placeholder="Enter supply quantity"
+                    value={nftDetails.supply || 1}
+                    onChange={handleInputChange}
+                    required
+                    />
+                </div>
+                )}
               <div>
                 <Label>Upload Image or Video</Label>
                 <FileUpload onFileSelect={handleFileSelect} />

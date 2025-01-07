@@ -135,21 +135,6 @@ export default function NewContractForm({ onContractSubmit }: { onContractSubmit
                     </div>
                 </RadioGroup>
             </div>
-            {formData.contractType === 'Edition' && (
-                <div className="space-y-2">
-                    <Label htmlFor="editions">Number of Editions</Label>
-                    <Input
-                        id="editions"
-                        name="editions"
-                        type="number"
-                        min="2"
-                        value={formData.editions}
-                        onChange={handleChange}
-                        placeholder="100"
-                        required
-                    />
-                </div>
-            )}
             <div className="space-y-2">
                 <Label>Upload Contract Image or Video</Label>
                 <FileUpload onFileSelect={handleFileSelect} />
