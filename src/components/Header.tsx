@@ -5,11 +5,32 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Moon, Sun } from 'lucide-react'
 import { useTheme } from '@/app/contexts/ThemeContext'
-import { ConnectButton } from 'thirdweb/react'
+import { ConnectButton, useActiveAccount } from 'thirdweb/react'
 import { thirdwebClient } from '../../lib/client/thirdwebClient'
+import { ConnectKitButton } from 'connectkit'
+import { getCurrentSession, login } from '../../lib/lensProtocolUtils'
+import ProfileSelectDialog from '../../components/ProfileSelectDialog'
+import { useEffect, useState } from 'react'
 
 export default function Header() {
   const { theme, toggleTheme } = useTheme()
+  const account = useActiveAccount();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentSession, setCurrentSession] = useState<any>(null);
+
+  useEffect(() => {
+    const manageSession = async () => {
+      const _currentSession = getCurrentSession();
+      setCurrentSession(_currentSession);
+    }
+    manageSession();
+  }
+  , [account]);
+
+
+  const handleLogin = () => {
+      login(account);
+    };
 
   return (
     <header className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white py-4 transition-colors duration-300">
@@ -32,11 +53,21 @@ export default function Header() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           </div>
          
-          { /* <Button className="bg-pink-500 hover:bg-pink-600 text-white">Connect Wallet</Button>*/ /*todo: embeleza o botao do thirdweb */ }  
+          {   /*todo: embeleza o botao do thirdweb */ }  
+          {(account && !currentSession) ? (
+              <>
+              <Button onClick={handleLogin} className="bg-pink-500 hover:bg-pink-600 text-white">Lens Login</Button>
+                <ProfileSelectDialog account={account} open={isDialogOpen} onOpenChange={setIsDialogOpen} />
+              </>
+            ) : (currentSession) ? (
+             <p>Logged</p>) : <></>}
+             
            <ConnectButton client={thirdwebClient} /> 
-          <Button variant="ghost" onClick={toggleTheme}>
+           {/*<ConnectKitButton />*/}
+          {/* <Button variant="ghost" onClick={toggleTheme}>
             {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
+          */}
         </div>
       </div>
     </header>

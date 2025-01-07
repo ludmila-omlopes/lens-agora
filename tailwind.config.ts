@@ -12,20 +12,20 @@ export default {
   theme: {
   	extend: {
   		colors: {
-			'my-indigo': '#4f45e5',
-			'pastel-pink': '#FFD6E0',
-			'pastel-yellow': '#FFF4E1',
-			'pastel-blue': '#DCEFFC',
-			'pastel-mint': '#D5F4E6',
-			'pastel-aqua': '#E8FFF7',
-			'pastel-lavender': '#F0E6FA',
-			'dark-purple': '#352746',
-            'dark-teal': '#10374A',
-            'dark-blue': '#1A2A42',
-            'dark-mint': '#1B5A5F',
-            'dark-aqua': '#1B737A', 
-            'dark-plum': '#523E5A',
-            'dark-violet': '#2E3555',
+  			'my-indigo': '#4f45e5',
+  			'pastel-pink': '#FFD6E0',
+  			'pastel-yellow': '#FFF4E1',
+  			'pastel-blue': '#DCEFFC',
+  			'pastel-mint': '#D5F4E6',
+  			'pastel-aqua': '#E8FFF7',
+  			'pastel-lavender': '#F0E6FA',
+  			'dark-purple': '#352746',
+  			'dark-teal': '#10374A',
+  			'dark-blue': '#1A2A42',
+  			'dark-mint': '#1B5A5F',
+  			'dark-aqua': '#1B737A',
+  			'dark-plum': '#523E5A',
+  			'dark-violet': '#2E3555',
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
@@ -71,6 +71,28 @@ export default {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
+  		},
+  		keyframes: {
+  			'accordion-down': {
+  				from: {
+  					height: '0'
+  				},
+  				to: {
+  					height: 'var(--radix-accordion-content-height)'
+  				}
+  			},
+  			'accordion-up': {
+  				from: {
+  					height: 'var(--radix-accordion-content-height)'
+  				},
+  				to: {
+  					height: '0'
+  				}
+  			}
+  		},
+  		animation: {
+  			'accordion-down': 'accordion-down 0.2s ease-out',
+  			'accordion-up': 'accordion-up 0.2s ease-out'
   		}
   	}
   },

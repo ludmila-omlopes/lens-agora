@@ -11,8 +11,8 @@ export default function Hero() {
     <section className="py-20 text-gray-800 dark:text-white transition-colors duration-300">
       <div className="container mx-auto flex flex-col md:flex-row items-center">
         <div className="md:w-1/2 mb-10 md:mb-0">
-          <h1 className="text-5xl font-bold mb-6 leading-tight">Discover, Collect, and Sell Extraordinary NFTs</h1>
-          <p className="text-xl mb-8">Enter the world of digital art and collectibles. Explore unique NFTs and start your collection today.</p>
+          <h1 className="text-5xl font-bold mb-6 leading-tight">Lens Agora - Where Creativity Meets Community</h1>
+          <p className="text-xl mb-8">Explore, connect, and thrive in the first social marketplace powered by Lens Network and Lens Protocol social graphs.</p>
           <div className="flex space-x-4">
             <Button className="bg-pink-500 hover:bg-pink-600 text-white">Explore</Button>
             <Button className="bg-purple-500 hover:bg-purple-600 text-white">Create</Button>
@@ -22,7 +22,7 @@ export default function Hero() {
           <div className={`w-80 h-80 rounded-full ${theme === 'dark' ? 'bg-pink-500' : 'bg-pink-300'} absolute top-0 right-0 filter blur-3xl opacity-50 animate-pulse`}></div>
           <div className={`w-80 h-80 rounded-full ${theme === 'dark' ? 'bg-purple-500' : 'bg-purple-300'} absolute bottom-0 left-0 filter blur-3xl opacity-50 animate-pulse`}></div>
           <img 
-            src="/placeholder.png" 
+            src="/girlanddog.png" 
             alt="Featured NFT" 
             width={500} 
             height={500} 

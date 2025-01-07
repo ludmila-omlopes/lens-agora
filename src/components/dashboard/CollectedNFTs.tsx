@@ -6,10 +6,13 @@ import { useActiveAccount } from "thirdweb/react"
 import { useEffect, useState } from 'react'
 import { NFT } from "thirdweb"
 import { NFTCollection } from "../../../lib/types"
+import { useAccount } from "wagmi";
 
 
 export default function CollectedNFTs() {
   const account = useActiveAccount();
+  const { address: familyAddress, isConnecting, isDisconnected } = useAccount();
+  console.log("familyAddress: ", familyAddress);
   const [collectedNFTs, setCollectedNFTs] = useState<NFTCollection[]>([]);
 
   useEffect(() => {

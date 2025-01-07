@@ -1,31 +1,51 @@
-import React from 'react';
-import { getNFTs } from "thirdweb/extensions/erc1155";
+"use client"
+
+import React, { useEffect, useState } from 'react';
 import { lensPublicClient } from '../../../lib/client/lensProtocolClient';
+import { currentSession } from "@lens-protocol/client/actions";
+import { useActiveAccount } from 'thirdweb/react';
 
 export type ChainIdProps = {
-    chainid: `0x${string}`
-    health: boolean
-  };
+  chainid: `0x${string}`;
+  health: boolean;
+};
 
-const resumed = await lensPublicClient?.resumeSession();
+const ClientTest = ({ chainid, health }: ChainIdProps) => {
+  const [sessionClient, setSessionClient] = useState<any>(null);
+  const [sessionError, setSessionError] = useState<null | Error>(null);
+  const account = useActiveAccount();
 
-if (resumed && resumed.isErr()) {
-  console.log(resumed.error);
-}else {
-  const sessionClient = resumed?.value;
-  console.log("sessionClient: ", sessionClient);
-}
+  useEffect(() => {
+    const manageSession = async () => {
+      const resumed = await lensPublicClient?.resumeSession();
 
-const ClientTest = ({ chainid, health } : ChainIdProps) => {
-    console.log("health: ", health);
-    return (
-        <div>
-            <p>Hello, this is a test page!</p>
-            <p>Chain ID: {chainid}</p>
+      if (resumed && resumed.isErr()) {
+        console.log(resumed.error);
+        setSessionError(resumed.error);
+      } else {
+        const sessionClient = resumed?.value;
+        setSessionClient(sessionClient);
 
-            <p>Health test: {String(health)} </p>
-        </div>
-    );
+        const result = await currentSession(sessionClient);
+
+        if (result.isErr()) {
+          console.error(result.error);
+          setSessionError(result.error);
+        }
+      }
+    };
+
+    manageSession();
+  }, [account]);
+
+  return (
+    <div>
+      <p>Hello, this is a test page!</p>
+      <p>Chain ID: {chainid}</p>
+      <p>Health test: {String(health)}</p>
+      {sessionError && <p>Error: {sessionError.message}</p>}
+    </div>
+  );
 };
 
 export default ClientTest;

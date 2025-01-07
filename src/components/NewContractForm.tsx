@@ -11,13 +11,13 @@ import FileUpload from './FileUpload'
 import { createNFTContract } from '../../lib/nfts'
 import { useActiveAccount } from 'thirdweb/react'
 
-//todo: colocar loading depois de submit
-//colocar um feedback se deu certo ou erro
 //verificar se account está conectada
+//tratar erro de salvar no banco de dados
 
-export default function NewContractForm() {
+export default function NewContractForm({ onContractSubmit }: { onContractSubmit: (contractAddress: string) => void }) {
     const { theme } = useTheme()
     const account = useActiveAccount();
+    const [loading, setLoading] = useState(false); 
     const [formData, setFormData] = useState({
         contractName: '',
         symbol: '',
@@ -35,20 +35,20 @@ export default function NewContractForm() {
     }
 
     const handleFileSelect = (file: File) => {
-        console.log('Selected file:', file)
         setFormData(prev => ({ ...prev, file }))
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        setLoading(true);
         console.log('Deploying new contract:', formData);
-        console.log('Account:', account);
         try {
             const contractAddress = await createNFTContract(account, formData.contractType, formData.contractName,
                 formData.symbol, formData.description, formData.file!)
             if (contractAddress) {
                 console.log('Contract deployed successfully: ', contractAddress)
                 alert('Contract deployed successfully: ' + contractAddress)
+                onContractSubmit(contractAddress); // Signal success to parent
                 setFormData({
                     contractName: '',
                     symbol: '',
@@ -64,6 +64,8 @@ export default function NewContractForm() {
             }
         } catch (error) {
             console.error('Error deploying contract:', error)
+        } finally {
+            setLoading(false);
         }
     }
 
@@ -103,7 +105,7 @@ export default function NewContractForm() {
                     className="min-h-[100px]"
                 />
             </div>
-            <div className="space-y-2">
+           {/*  <div className="space-y-2">
                 <Label htmlFor="royalties">Royalties (%)</Label>
                 <Input
                     id="royalties"
@@ -116,7 +118,7 @@ export default function NewContractForm() {
                     placeholder="5"
                     required
                 />
-            </div>
+            </div>*/}
             <div className="space-y-2">
                 <Label>Contract Type</Label>
                 <RadioGroup 
@@ -152,7 +154,7 @@ export default function NewContractForm() {
                 <Label>Upload Contract Image or Video</Label>
                 <FileUpload onFileSelect={handleFileSelect} />
             </div>
-            <Button type="submit" className="w-full text-lg py-6">Deploy Contract</Button>
+            <Button type="submit" className="w-full text-lg py-6">{loading ? 'Deploying...Please Wait' : 'Deploy Contract'}</Button>
         </form>
     )
 }

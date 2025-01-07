@@ -7,6 +7,8 @@ import TopCollections from '@/components/TopCollections'
 import { useTheme } from './contexts/ThemeContext'
 import { getFeaturedListings } from '../../lib/marketplacev3'
 import { DirectListing } from 'thirdweb/extensions/marketplace'
+import TopCollectors from '@/components/TopCollectors'
+import GroupsHighlight from '@/components/GroupsHighlight'
 
 export default function Home() {
   const { theme } = useTheme()
@@ -30,7 +32,9 @@ export default function Home() {
       <main>
         <Hero />
         <FeaturedNFTs nfts={featuredNFTs} />
-        <TopCollections />
+        {/* <TopCollections />*/}
+        <TopCollectors />
+         <GroupsHighlight />
       </main>
     </div>
   )

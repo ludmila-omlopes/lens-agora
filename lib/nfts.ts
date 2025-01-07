@@ -1,7 +1,7 @@
 import { getAddress, getContract, NFT, readContract, sendTransaction } from "thirdweb";
 import { thirdwebClient, thirdwebClientServer } from "./client/thirdwebClient";
 import { getNFT as getNFT1155, getNFTs as getNFTs1155, mintTo as mintERC1155to, lazyMint as lazyMintERC1155, setApprovalForAll } from "thirdweb/extensions/erc1155";
-import { getNFT as getNFT721, getNFTs as getNFTs721, mintTo as mintERC721to, lazyMint as lazyMintERC721, approve } from "thirdweb/extensions/erc721";
+import { getNFT as getNFT721, getNFTs as getNFTs721, mintTo as mintERC721to, lazyMint as lazyMintERC721, approve, getAllOwners } from "thirdweb/extensions/erc721";
 import { lensTestnetBlockexplorerAPI, lensTestnetChain } from "./lensNetwork";
 import { deployERC1155Contract, deployERC721Contract } from "thirdweb/deploys";
 import { verifyContract } from "thirdweb/contract";
@@ -13,6 +13,7 @@ import { Collection, NFTCollection } from "./types";
 import { marketplaceContractAddress } from "./marketplacev3";
 import { getERC1155OwnedByAddress, getERC721OwnedByAddress } from "./thirdwebUtils";
 import { addDeployedContract, listDeployedContractsByAddress } from "./db";
+import { isNullish } from "@apollo/client/cache/inmemory/helpers";
 
 export async function getCurrentNFT({ contractAdd, tokenId }: { contractAdd: string, tokenId: bigint }) {
    const contract = getContract({
@@ -143,7 +144,7 @@ export async function listNFTs({ contractAdd, start, count }: { contractAdd: str
 //todo: se executar o deploy mas não o db, tratar.
 export async function createNFTContract(account: any, contractType: string, name: string, symbol: string, description: string, image?: File, supply?: bigint) { 
   
-  var contractAddress = "0xtest";
+  var contractAddress = "";
   console.log("contractType: ", contractType);
 
   switch(contractType) {
@@ -267,7 +268,7 @@ export function getNFTMediaURL(nft: NFT) {
   if (nft.metadata && nft.metadata.image) {
     return resolveScheme({ uri: nft.metadata.image, client: thirdwebClientServer });
   }
-  return "https://example.com/placeholder.png";
+  return "/placeholder.png";
 }
 
 export async function approveNFT(nft: NFT, nftcontract: string, account: any) {
@@ -336,6 +337,30 @@ export async function isNFTOwnedByAddress(address: string, nft: NFT, collectionA
     return ownedNFTs.data.some((ownedNFT: { tokenId: string; collectionAddress: string; }) => ownedNFT.tokenId === nft.id.toString() && getAddress(ownedNFT.collectionAddress) === getAddress(collectionAddress)); 
   }
   return false;
+}
+
+export async function get721NFTOwner(nft: NFT, collectionAddress: string)
+{
+  //incluir dados de redes sociais (imagem, username, etc)
+  const contract = getContract({
+    chain: lensTestnetChain,
+    address: collectionAddress,
+    client: thirdwebClient,
+  }); 
+
+  if(nft && nft.type === "ERC721") {
+    const owners = await getAllOwners({
+      contract,
+      start: Number(nft.id),
+      count: Number(nft.id),
+    });
+
+    return owners[0];
+  }
+  else if(nft && nft.type === "ERC1155") { //como 1155 são multieditions, um único id tem vários owners
+    
+    return null;
+  }
 }
 
 async function createMultieditionContract(account: any, name: string, description: string, symbol: string, image?: File) {
@@ -439,3 +464,4 @@ export async function listCreatedContractsByAddress(address: string): Promise<Co
 
   return contractDetails;
 }
+

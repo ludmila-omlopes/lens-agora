@@ -54,10 +54,9 @@ const ProfileSelectDialog: React.FC<ProfileSelectDialogProps> = ({
     }, [account]);
 
     const handleProfileClick = async (lensAccount: AccountAvailable) => {
-        // Implement your login method here
         console.log('lensAccount:', lensAccount.account);
-        const result = await loginWithAccount(account, lensAccount.account);
-        console.log('result: ', result);
+        const sessionClient = await loginWithAccount(account, lensAccount.account);
+        console.log('result: ', sessionClient );
     };
 
     return (

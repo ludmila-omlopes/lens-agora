@@ -6,15 +6,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import ExistingContractForm from '@/components/ExistingContractForm'
 import NewContractForm from '@/components/NewContractForm'
 import { useTheme } from '../contexts/ThemeContext'
+import CreateNFTProcess from '@/components/CreateNFTProcess'
 
 export default function CreateNFT() {
   const { theme } = useTheme()
   const [contractType, setContractType] = useState<'existing' | 'new'>('existing')
 
-  return (
+  /*return (
     <Card className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'} max-w-4xl mx-auto shadow-2xl`}>
       <CardHeader className="text-center">
-        <CardTitle className="text-3xl font-bold">Create Your NFT</CardTitle>
       </CardHeader>
       <CardContent className="p-6">
         <Tabs defaultValue="existing" onValueChange={(value) => setContractType(value as 'existing' | 'new')}>
@@ -31,6 +31,19 @@ export default function CreateNFT() {
         </Tabs>
       </CardContent>
     </Card>
-  )
+  ) */
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-100 to-orange-100 dark:from-gray-900 dark:via-purple-900 dark:to-violet-800">
+        <div className="container mx-auto py-8 px-4">
+          <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-8">Create NFT</h1>
+          <CreateNFTProcess />
+        </div>
+      </div>
+    )
 }
+
+
+
+//todo: colocar que vai ter auctions soon
 

@@ -2,13 +2,14 @@ import { thirdwebClient } from "./client/thirdwebClient";
 import { getContract } from "thirdweb/contract";
 import { getAddress, NFT, prepareEvent, readContract } from "thirdweb";
 import { lensTestnetChain } from "./lensNetwork";
-import { createListing, getAllValidListings, getListing, isBuyFromListingSupported, isCreateAuctionSupported, isCreateListingSupported, updateListing } from "thirdweb/extensions/marketplace";
+import { createListing, getAllListings, getAllValidListings, getListing, isBuyFromListingSupported, isCreateAuctionSupported, isCreateListingSupported, updateListing } from "thirdweb/extensions/marketplace";
 import { sendTransaction } from "thirdweb";
 import { approve } from "thirdweb/extensions/erc20";
-import { approveNFT, getCurrentNFT } from "./nfts";
+import { approveNFT, getCurrentCollection, getCurrentNFT } from "./nfts";
 import { getContractEvents } from "thirdweb";
 import { newListingEvent } from "thirdweb/extensions/marketplace";
 import { MarketplaceInfo } from "./types";
+import { getProfileByAddress } from "./profileUtils";
 
 export const marketplaceContractAddress = "0x06A4d039c7450628d52F2D81f59DBD948E07DbdA";
 
@@ -18,17 +19,6 @@ const contract = getContract({
     address: marketplaceContractAddress, //contrato do marketplace
   });
 
-
-export async function getAllListings(_startId: bigint, _endId: bigint) {
-    const data = await readContract({
-        contract,
-        method:
-          "function getAllListings(uint256 _startId, uint256 _endId) view returns ((uint256 listingId, uint256 tokenId, uint256 quantity, uint256 pricePerToken, uint128 startTimestamp, uint128 endTimestamp, address listingCreator, address assetContract, address currency, uint8 tokenType, uint8 status, bool reserved)[] _allListings)",
-        params: [_startId, _endId],
-      });
-
-    return data;
-}
 
 //ainda não vou usar essa função pois o botão de listagem direta já faz isso, com approve
 export async function createNewListing(account: any, nftAddress: string,  _tokenId: bigint, _quantity: bigint, _pricePerToken: bigint, _startTimestamp: Date, _endTimestamp: Date, _currency?: string) {
@@ -83,20 +73,28 @@ export async function editListing(account: any, _listingId: bigint, _pricePerTok
 
 
 export async function getNFTMarketplaceInfo(nft: NFT, nftAddress: string) {
-  //preciso saber se o NFT está listado, e se sim todas as informações do listing e dar opção de alguem comprar.
-  //senão, saber se ele é listável, se é da pessoa logada.
   //todo: pegar auction status
   const marketplaceInfo = {} as MarketplaceInfo;
+  const collection = await getCurrentCollection({ contractAdd: nftAddress });
+  if (!collection) {
+    return null;
+  }
 
-  const listings = await getAllValidListings({contract}); //se tiver muitas listagens esse método vai ficar pesado
-  const currentListing = listings.find((listing) => listing.tokenId === nft.id && listing.assetContractAddress === nftAddress);
+  const listings = await getAllListings({contract}); //se tiver muitas listagens esse método vai ficar pesado
+  
+  const currentListing = listings.find((listing) => listing.tokenId === nft.id && getAddress(listing.assetContractAddress) === getAddress(nftAddress));
+  console.log("currentListing: ", currentListing);
+  if (!currentListing) {
+    return null;
+  }
 
-  marketplaceInfo.status = currentListing ? "ACTIVE" : "INACTIVE"; //todo: verificar se é auction
-  marketplaceInfo.price = currentListing ? currentListing.pricePerToken : 0n; //todo: verificar se é auction
-  marketplaceInfo.seller = currentListing?.creatorAddress!;
+  marketplaceInfo.listing = currentListing;
+  marketplaceInfo.nft = nft;
+  marketplaceInfo.listingType = 'DIRECT'
+  marketplaceInfo.collection = collection;
   
   
-  return currentListing;
+  return marketplaceInfo;
 }
 
 export async function getAllListingsByAddress(address: string) {
@@ -106,12 +104,37 @@ export async function getAllListingsByAddress(address: string) {
 
 export async function getFeaturedListings() {
   const featuredListingIds = process.env.NEXT_PUBLIC_FEATURED_LISTINGS_IDS?.split(",").map(id => BigInt(id.trim())) || [1n, 2n, 3n];
-  console.log("featuredListingIds: ", featuredListingIds);
+
   //todo: precisa testar se todos os ids realmente existem listagem
   const featuredListings = await Promise.all(featuredListingIds.map((listingId) => getListingById(listingId)));
   return featuredListings;
 }
 
+
 async function getListingById(listingId: bigint) {
   return await getListing({ contract, listingId: listingId });
+}
+
+export async function getAllValidListingsWithProfile() {
+  const listings = await getAllValidListings({ contract });
+
+  const listingsWithProfiles = await Promise.all(
+    listings.map(async (listing) => {
+      try {
+        const profile = await getProfileByAddress(listing.creatorAddress);
+        return {
+          ...listing,
+          creatorProfile: profile?.name || 'Unknown Creator', // Add profile name or fallback
+        };
+      } catch (error) {
+        console.error(`Failed to fetch profile for address ${listing.creatorAddress}:`, error);
+        return {
+          ...listing,
+          creatorProfile: 'Unknown Creator', // Fallback if profile fetch fails
+        };
+      }
+    })
+  );
+
+  return listingsWithProfiles;
 }
