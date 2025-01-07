@@ -17,8 +17,8 @@ const collectionData = {
   description: 'The Bored Ape Yacht Club is a collection of 10,000 unique Bored Ape NFTs— unique digital collectibles living on the Ethereum blockchain.',
   creator: 'Yuga Labs',
   totalItems: 10000,
-  floorPrice: '30.5 ETH',
-  volumeTraded: '487,000 ETH',
+  floorPrice: '30.5 GRASS',
+  volumeTraded: '487,000 GRASS',
   bannerImage: '/placeholder.svg?text=BAYC+Banner',
   profileImage: '/placeholder.svg?text=BAYC+Logo',
 }

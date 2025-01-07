@@ -6,6 +6,7 @@ import { useTheme } from '@/app/contexts/ThemeContext';
 import { DirectListing } from 'thirdweb/extensions/marketplace';
 import { getNFTMediaURL } from '../../lib/nfts';
 import { getProfileByAddress } from '../../lib/profileUtils';
+import Link from 'next/link';
 
 export default function FeaturedNFTs({ nfts }: { nfts: DirectListing[] }) {
   const { theme } = useTheme();
@@ -43,6 +44,7 @@ export default function FeaturedNFTs({ nfts }: { nfts: DirectListing[] }) {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {nfts.map((nft) => (
+            <Link href="/items/[address]/[id]" as={`/items/${nft.assetContractAddress}/${nft.asset.id}`} key={nft.id}>
             <div
               key={nft.id}
               className={`${
@@ -68,6 +70,7 @@ export default function FeaturedNFTs({ nfts }: { nfts: DirectListing[] }) {
                 </p>
               </div>
             </div>
+            </Link>
           ))}
         </div>
       </div>

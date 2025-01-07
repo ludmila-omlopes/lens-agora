@@ -36,7 +36,12 @@ export default function Header() {
     <header className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white py-4 transition-colors duration-300">
       <div className="container mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-6">
-        <Link href="/" className="text-2xl font-bold">Lens Agora</Link>
+          <div className="flex items-center space-x-1 items-center justify-between">
+          <Link href="/">
+            <img src="/logo1.png" alt="Lens Agora Logo" className="h-12" />
+          </Link>
+          <Link href="/" className="text-2xl font-bold space-x-2">Lens Agora</Link>
+        </div>
          <nav className="hidden md:flex space-x-4">
             <Link href="/explore" className="hover:text-pink-400 transition-colors">Explore</Link>
             <Link href="/create" className="hover:text-pink-400 transition-colors">Create</Link>

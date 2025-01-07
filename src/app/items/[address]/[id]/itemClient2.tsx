@@ -229,73 +229,75 @@ const [listingDetails, setListingDetails] = useState({
       {/* Price Input */}
       Price
       <input
-        type="text"
-        name="price"
-        placeholder="Price"
-        className="w-full p-2 border rounded"
-        value={listingDetails.price}
-        onChange={handleInputChange}
+      type="text"
+      name="price"
+      placeholder="Price"
+      className="w-full p-2 border rounded"
+      value={listingDetails.price}
+      onChange={handleInputChange}
       />
 
       {/* Start Time Input 
       <input
-        type="datetime-local"
-        name="startTime"
-        placeholder="Start Time"
-        className="w-full p-2 border rounded"
-        value={listingDetails.startTime}
-        onChange={handleInputChange}
+      type="datetime-local"
+      name="startTime"
+      placeholder="Start Time"
+      className="w-full p-2 border rounded"
+      value={listingDetails.startTime}
+      onChange={handleInputChange}
       />*/}
 
       {/* Add End Date Checkbox */}
       <div className="flex items-center space-x-2">
-        <input
-          type="checkbox"
-          id="addEndDate"
-          checked={!!listingDetails.endTime}
-          onChange={(e) =>
-            setListingDetails((prev) => ({
-              ...prev,
-              endTime: e.target.checked ? new Date().toISOString().slice(0, 16) : '',
-            }))
-          }
-        />
-        <label htmlFor="addEndDate" className="text-purple-600">
-          Add an end date
-        </label>
+      <input
+        type="checkbox"
+        id="addEndDate"
+        checked={!!listingDetails.endTime}
+        onChange={(e) =>
+        setListingDetails((prev) => ({
+          ...prev,
+          endTime: e.target.checked ? new Date().toISOString().slice(0, 16) : '',
+        }))
+        }
+      />
+      <label htmlFor="addEndDate" className="text-purple-600">
+        Add an end date
+      </label>
       </div>
 
       {/* End Time Input (conditionally rendered) */}
       {listingDetails.endTime && (
-        <input
-          type="datetime-local"
-          name="endTime"
-          placeholder="End Time"
-          className="w-full p-2 border rounded"
-          value={listingDetails.endTime}
-          onChange={handleInputChange}
-        />
+      <input
+        type="datetime-local"
+        name="endTime"
+        placeholder="End Time"
+        className="w-full p-2 border rounded"
+        value={listingDetails.endTime}
+        onChange={handleInputChange}
+      />
       )}
 
       {/* Currency Selector */}
       <select
-        name="currency"
-        className="w-full p-2 border rounded"
-        value={listingDetails.currency}
-        onChange={handleInputChange}
+      name="currency"
+      className="w-full p-2 border rounded"
+      value={listingDetails.currency}
+      onChange={handleInputChange}
       >
-        <option value="GRASS">GRASS</option>
-        <option disabled value="GHO">
-          GHO (soon)
-        </option>
-        <option disabled value="BONSAI">
-          BONSAI (soon)
-        </option>
+      <option value="GRASS">GRASS</option>
+      <option disabled value="GHO">
+        GHO (soon)
+      </option>
+      <option disabled value="BONSAI">
+        BONSAI (soon)
+      </option>
       </select>
 
-      {/* Quantity Input */}
-      Quantity
-      <input
+      {/* Quantity Input (conditionally rendered) */}
+      {nft.type === 'ERC1155' && (
+      <>
+        Quantity
+        <input
         type="number"
         name="quantity"
         placeholder="Quantity"
@@ -303,7 +305,9 @@ const [listingDetails, setListingDetails] = useState({
         value={listingDetails.quantity}
         onChange={handleInputChange}
         min="1"
-      />
+        />
+      </>
+      )}
     </div>
     <DialogFooter>
       <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
