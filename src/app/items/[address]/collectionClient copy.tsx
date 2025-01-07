@@ -1,117 +1,98 @@
-'use client'
-
-import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useTheme } from '@/app/contexts/ThemeContext'
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import NFTCard from '../../../../components/NFTCard'
+import { NFT, ThirdwebContract } from 'thirdweb'
+import { Collection } from '../../../../lib/types'
 
-// Mock data for the collection
-const collectionData = {
-  id: '1',
-  name: 'Bored Ape Yacht Club',
-  description: 'The Bored Ape Yacht Club is a collection of 10,000 unique Bored Ape NFTs— unique digital collectibles living on the Ethereum blockchain.',
-  creator: 'Yuga Labs',
-  totalItems: 10000,
-  floorPrice: '30.5 ETH',
-  volumeTraded: '487,000 ETH',
-  bannerImage: '/placeholder.svg?text=BAYC+Banner',
-  profileImage: '/placeholder.svg?text=BAYC+Logo',
+// In a real application, you'd fetch this data based on the collection ID
+const collection = {
+  id: 'wacky-toon-world',
+  name: 'Wacky Toon World',
+  description: 'Step into a realm of pure imagination with Wacky Toon World! This collection features an array of delightfully absurd and charmingly peculiar cartoon characters that will bring a smile to your face and a bounce to your step. Each NFT is a portal to a world where the laws of physics take a backseat to fun!',
+  image: '/placeholder.svg?height=300&width=1200',
+  creator: {
+    name: 'Doodle Master',
+    avatar: '/placeholder.svg?height=64&width=64'
+  },
+  stats: {
+    items: 1000,
+    owners: 750,
+    floorPrice: '0.5 ETH',
+    volumeTraded: '1250 ETH'
+  },
+  nfts: [
+    { id: '42', name: 'Crazy Cartoon Critter #42', image: '/placeholder.svg?height=300&width=300', price: '5.5 ETH' },
+    { id: '7', name: 'Giggling Gizmo #7', image: '/placeholder.svg?height=300&width=300', price: '3.2 ETH' },
+    { id: '23', name: 'Wacky Widget #23', image: '/placeholder.svg?height=300&width=300', price: '2.8 ETH' },
+    { id: '11', name: 'Silly Sculpture #11', image: '/placeholder.svg?height=300&width=300', price: '1.5 ETH' },
+    { id: '99', name: 'Loony Landscape #99', image: '/placeholder.svg?height=300&width=300', price: '4.0 ETH' },
+    { id: '63', name: 'Bonkers Balloon #63', image: '/placeholder.svg?height=300&width=300', price: '2.1 ETH' },
+  ]
 }
 
-const nfts = [
-  { id: 1, name: "Bored Ape #1234", price: "50 ETH", image: "/placeholder.svg?text=Bored+Ape+1234" },
-  { id: 2, name: "Bored Ape #5678", price: "45 ETH", image: "/placeholder.svg?text=Bored+Ape+5678" },
-  { id: 3, name: "Bored Ape #9101", price: "55 ETH", image: "/placeholder.svg?text=Bored+Ape+9101" },
-  // Add more NFTs as needed
-]
-
-export default function CollectionDetails({ id }: { id: string }) {
-  const { theme } = useTheme()
-  const [activeTab, setActiveTab] = useState('items')
-
+export default function CollectionClient({collectionContract, firstNFTs}: {collectionContract: Collection, firstNFTs: NFT[]}) {
   return (
-    <div className="space-y-8">
-      <div className="relative h-64 rounded-lg overflow-hidden">
-        <Image
-          src={collectionData.bannerImage}
-          alt={`${collectionData.name} banner`}
-          layout="fill"
-          objectFit="cover"
-        />
-      </div>
-      
-      <div className="flex items-center space-x-4">
-        <Image
-          src={collectionData.profileImage}
-          alt={`${collectionData.name} logo`}
-          width={100}
-          height={100}
-          className="rounded-full border-4 border-white dark:border-gray-800"
-        />
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">{collectionData.name}</h1>
-          <p className="text-gray-600 dark:text-gray-300">Created by {collectionData.creator}</p>
+    <div className="min-h-screen bg-purple-100 text-purple-900 p-8 [&_*]:shadow-cartoon">
+      <div className="max-w-6xl mx-auto">
+        <div className="relative h-64 rounded-xl overflow-hidden mb-8">
+          <img
+            src={collectionContract.imageUrl}
+            alt={collectionContract.name}
+            //fill - esse parametro é para Image do next.js
+            className="object-cover"
+          />
+        </div>
+        
+        <div className="bg-white rounded-xl border-4 border-pink-400 p-8 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-4xl font-bold text-purple-600">{collectionContract.name}</h1>
+            <div className="flex items-center">
+              <Avatar className="h-12 w-12 mr-4 border-2 border-purple-400">
+                <AvatarImage src={collection.creator.avatar} alt={collection.creator.name} />
+                <AvatarFallback>{collectionContract.owner}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="text-sm text-purple-400">Created by</p>
+                <p className="font-bold text-purple-600">{collectionContract.owner}</p>
+              </div>
+            </div>
+          </div>
+          
+          <p className="text-purple-500 mb-6">{collectionContract.description}</p>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-yellow-100 rounded-lg p-4 text-center">
+              <p className="text-sm text-purple-400">Items</p>
+              <p className="font-bold text-purple-600">{collection.stats.items}</p>
+            </div>
+            <div className="bg-green-100 rounded-lg p-4 text-center">
+              <p className="text-sm text-purple-400">Owners</p>
+              <p className="font-bold text-purple-600">{collection.stats.owners}</p>
+            </div>
+            <div className="bg-blue-100 rounded-lg p-4 text-center">
+              <p className="text-sm text-purple-400">Floor Price</p>
+              <p className="font-bold text-purple-600">{collection.stats.floorPrice}</p>
+            </div>
+            <div className="bg-pink-100 rounded-lg p-4 text-center">
+              <p className="text-sm text-purple-400">Volume Traded</p>
+              <p className="font-bold text-purple-600">{collection.stats.volumeTraded}</p>
+            </div>
+          </div>
+          
+          <Button className="w-full bg-yellow-400 text-purple-600 hover:bg-yellow-500 rounded-lg py-2 font-bold transform transition-transform hover:scale-105">
+            View All Items
+          </Button>
+        </div>
+        
+        <h2 className="text-3xl font-bold text-purple-600 mb-6">Featured NFTs</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {firstNFTs.map((nft) => (
+            <NFTCard key={nft.id} nft={nft} collectionAddress={collectionContract.address} />
+          ))}
         </div>
       </div>
-
-      <p className="text-gray-700 dark:text-gray-300">{collectionData.description}</p>
-
-      <div className="grid grid-cols-3 gap-4">
-        <Card className={theme === 'dark' ? 'bg-gray-800' : 'bg-white'}>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Items</p>
-            <p className="text-xl font-bold text-gray-800 dark:text-white">{collectionData.totalItems}</p>
-          </CardContent>
-        </Card>
-        <Card className={theme === 'dark' ? 'bg-gray-800' : 'bg-white'}>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Floor Price</p>
-            <p className="text-xl font-bold text-gray-800 dark:text-white">{collectionData.floorPrice}</p>
-          </CardContent>
-        </Card>
-        <Card className={theme === 'dark' ? 'bg-gray-800' : 'bg-white'}>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Volume Traded</p>
-            <p className="text-xl font-bold text-gray-800 dark:text-white">{collectionData.volumeTraded}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Tabs defaultValue="items" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="items">Items</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
-        </TabsList>
-        <TabsContent value="items">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-            {nfts.map((nft) => (
-              <Link href={`/nft/${nft.id}`} key={nft.id}>
-                <Card className={`${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'} transition-colors duration-200`}>
-                  <CardContent className="p-4">
-                    <div className="aspect-square relative mb-2">
-                      <Image
-                        src={nft.image}
-                        alt={nft.name}
-                        layout="fill"
-                        objectFit="cover"
-                        className="rounded-lg"
-                      />
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white">{nft.name}</h3>
-                    <p className="text-gray-600 dark:text-gray-300">{nft.price}</p>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </TabsContent>
-        <TabsContent value="activity">
-          <p className="text-gray-700 dark:text-gray-300 mt-4">Recent activity will be displayed here.</p>
-        </TabsContent>
-      </Tabs>
     </div>
   )
 }
