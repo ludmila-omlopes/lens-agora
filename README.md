@@ -30,3 +30,5 @@ Lens Agora is a revolutionary marketplace built on the Lens Network, combining t
 2.  **Lens Protocol mockups**
     
     Lens Protocol functionalities like Groups, Apps, Feeds, and Accounts are represented in this project as mockups. Many of these features are not yet available in their full form to meet my intentions for Lens Agora. However, these mockups faithfully represent these functionalities based on the Lens Documentation.
+
+    ![alt text](image.png)
