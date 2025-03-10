@@ -5,12 +5,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import CollectedNFTs from './dashboard/CollectedNFTs'
 import ListedNFTs from './dashboard/ListedNFTs'
 import DeployedContracts from './dashboard/DeployedContracts'
-import { useActiveAccount } from 'thirdweb/react'
-import { Account } from 'thirdweb/wallets'
+import { useAccount } from "wagmi";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('collected')
-  const account = useActiveAccount(); // Custom hook to fetch the active account
+  const account = useAccount();
 
   return (
     <Tabs defaultValue="collected" onValueChange={(value) => setActiveTab(value)}>

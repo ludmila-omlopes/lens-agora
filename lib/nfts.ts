@@ -14,6 +14,8 @@ import { marketplaceContractAddress } from "./marketplacev3";
 import { getERC1155OwnedByAddress, getERC721OwnedByAddress } from "./thirdwebUtils";
 import { addDeployedContract, listDeployedContractsByAddress } from "./db";
 import { isNullish } from "@apollo/client/cache/inmemory/helpers";
+import { immutable, StorageClient } from "@lens-chain/storage-client";
+import { upload } from "thirdweb/storage";
 
 export async function getCurrentNFT({ contractAdd, tokenId }: { contractAdd: string, tokenId: bigint }) {
    const contract = getContract({
@@ -189,7 +191,14 @@ export async function createNFTContract(account: any, contractType: string, name
     }
 
 export async function mintNewNFT({ contractAdd, name, quantity, description, mintToAdd, account, media }: { contractAdd: string, name: string, quantity: bigint, description: string, mintToAdd: string, account: any, media: File }) {
-    const contract = getContract({
+    
+  const storageClient = StorageClient.create();
+
+  const acl = immutable(
+    lensTestnetChain.id
+  );
+
+  const contract = getContract({
         chain: lensTestnetChain,
         address: contractAdd,
         client: thirdwebClient,
@@ -198,15 +207,29 @@ export async function mintNewNFT({ contractAdd, name, quantity, description, min
     const issingleNFT = await isERC721({ contract });
     const ismultiNFT = await isERC1155({ contract });
 
+    const mediaUri = await upload({
+      client: thirdwebClient,
+      files: [media],
+      });
+
+      console.log("mediaUri: ", mediaUri);
+
+    const nftMetadata = {
+        name: name,
+        description,
+        image: mediaUri,
+        //image: media,
+      };
+
+    const response = await storageClient.uploadAsJson(nftMetadata, { acl });
+
+    console.log("response metadata: ", response);
+
     if(issingleNFT) {
         const transaction = mintERC721to({
             contract,
             to: mintToAdd,
-            nft: { //pode ser URI ou metadados. Tem mais parametros como animation, background color, etc (https://portal.thirdweb.com/references/typescript/v5/NFTInput)
-                name: name,
-                description,
-                image: media, //todo: fazer upload. FileOrBufferOrString
-            },
+            nft: response.gatewayUrl,
         });
 
         await sendTransaction({ transaction, account });
@@ -216,11 +239,7 @@ export async function mintNewNFT({ contractAdd, name, quantity, description, min
       contract,
       to: mintToAdd,
       supply: quantity,
-      nft: { //pode ser URI ou metadados. Tem mais parametros como animation, background color, etc (https://portal.thirdweb.com/references/typescript/v5/NFTInput)
-          name: name,
-          description,
-          image: media, //todo: fazer upload. FileOrBufferOrString
-      },
+      nft: response.gatewayUrl,
       });
 
       await sendTransaction({ transaction, account });
@@ -317,14 +336,14 @@ export async function listNFTsOwnedBy(address: string) {
     ownedNFTs.push(...erc721.data);
   }
 
+  console.log("ownedNFTs: ", ownedNFTs);
+
   const nftPromises = ownedNFTs.map(async nft => {
-    const nftData = await getCurrentNFT({ contractAdd: nft.collectionAddress, tokenId: BigInt(nft.tokenId) });
-    const collectionData = await getCurrentCollection({ contractAdd: nft.collectionAddress });
+    const nftData = await getCurrentNFT({ contractAdd: nft.tokenAddress, tokenId: BigInt(nft.tokenId) });
+    const collectionData = await getCurrentCollection({ contractAdd: nft.tokenAddress });
     return { nft: nftData, collection: collectionData, collectionAddress: collectionData.address } as NFTCollection;
   });
   const nfts = await Promise.all(nftPromises);
-
-  console.log("ownedNFTs: ", nfts);
   return nfts;
 }
 
@@ -333,12 +352,14 @@ export async function isNFTOwnedByAddress(address: string, nft: NFT, collectionA
     return false;
   }
   if(nft && nft.type === "ERC721") {
-    const ownedNFTs = await getERC721OwnedByAddress(address);
-    return ownedNFTs.data.some((ownedNFT: { tokenId: string; collectionAddress: string; }) => ownedNFT.tokenId === nft.id.toString() && getAddress(ownedNFT.collectionAddress) === getAddress(collectionAddress));
+    const ownedNFTs = await getERC721OwnedByAddress(address); //nao pega se tiver listado em auction
+    console.log("ownedNFTs ERC721: ", ownedNFTs);
+    return ownedNFTs.data.some((ownedNFT: { tokenId: string; tokenAddress: string; }) => ownedNFT.tokenId === nft.id.toString() && getAddress(ownedNFT.tokenAddress) === getAddress(collectionAddress));
   }
   else if(nft && nft.type === "ERC1155") { //como 1155 são multieditions, um único id tem vários owners
     const ownedNFTs = await getERC1155OwnedByAddress(address);
-    return ownedNFTs.data.some((ownedNFT: { tokenId: string; collectionAddress: string; }) => ownedNFT.tokenId === nft.id.toString() && getAddress(ownedNFT.collectionAddress) === getAddress(collectionAddress)); 
+    console.log("ownedNFTs ERC1155: ", ownedNFTs);
+    return ownedNFTs.data.some((ownedNFT: { tokenId: string; tokenAddress: string; }) => ownedNFT.tokenId === nft.id.toString() && getAddress(ownedNFT.tokenAddress) === getAddress(collectionAddress)); 
   }
   return false;
 }

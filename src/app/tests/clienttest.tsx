@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { lensPublicClient } from '../../../lib/client/lensProtocolClient';
 import { currentSession } from "@lens-protocol/client/actions";
-import { useActiveAccount } from 'thirdweb/react';
+import { useAccount } from 'wagmi';
 
 export type ChainIdProps = {
   chainid: `0x${string}`;
@@ -13,7 +13,7 @@ export type ChainIdProps = {
 const ClientTest = ({ chainid, health }: ChainIdProps) => {
   const [sessionClient, setSessionClient] = useState<any>(null);
   const [sessionError, setSessionError] = useState<null | Error>(null);
-  const account = useActiveAccount();
+  const account = useAccount();
 
   useEffect(() => {
     const manageSession = async () => {

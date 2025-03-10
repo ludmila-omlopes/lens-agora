@@ -14,15 +14,16 @@ import { useEffect, useState } from 'react';
 import { listAvailableLensAccounts, loginWithAccount } from '../lib/lensProtocolUtils';
 import { AccountAvailable } from '@lens-protocol/client';
 import { DialogTitle } from '@radix-ui/react-dialog';
+import { RetroButton } from '@/components/customUI/RetroButton';
 
 interface ProfileSelectDialogProps {
-    account: any; // Replace `any` with a specific type if possible
+    accountAddress: string; // Replace `any` with a specific type if possible
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }
 
 const ProfileSelectDialog: React.FC<ProfileSelectDialogProps> = ({
-    account,
+    accountAddress,
     open,
     onOpenChange,
 }) => {
@@ -32,15 +33,18 @@ const ProfileSelectDialog: React.FC<ProfileSelectDialogProps> = ({
 
     useEffect(() => {
         const fetchLensAccounts = async () => {
+            console.log('Fetching Lens accounts for', accountAddress ? accountAddress : 'no account address');
             try {
-                if (account) {
-                        const result = await listAvailableLensAccounts(account);
+                if (accountAddress && open) {
+                        let result;
+                        if (accountAddress) {
+                            result = await listAvailableLensAccounts(accountAddress);
+                        }
                         if (result && result?.items) {
                             setManagedProfiles([...result.items]);
                         } else {
                             setManagedProfiles([]);
                         }
-                        setLoadingProfiles(false);
                     }
             } catch (err) {
                 console.error('Error fetching Lens accounts:', err);
@@ -51,18 +55,21 @@ const ProfileSelectDialog: React.FC<ProfileSelectDialogProps> = ({
         };
 
         fetchLensAccounts();
-    }, [account]);
+    }, [accountAddress, open]);
 
     const handleProfileClick = async (lensAccount: AccountAvailable) => {
-        console.log('lensAccount:', lensAccount.account);
-        const sessionClient = await loginWithAccount(account, lensAccount.account);
-        console.log('result: ', sessionClient );
+        try {
+            const sessionClient = await loginWithAccount(accountAddress, lensAccount.account);
+        } catch (err) {
+            console.error('Error logging in with account:', err);
+            setError('Failed to login with the selected profile. Please try again later.');
+        }
     };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogTrigger asChild>
-                <Button>Login</Button>
+                <RetroButton>Login</RetroButton>
             </DialogTrigger>
             <DialogContent>
                 <DialogTitle>Choose a Profile</DialogTitle>

@@ -27,7 +27,7 @@ export default function TopCollectors() {
           <CardContent>
             {topCollectors.map((collector, index) => (
               
-                <div className={`flex items-center justify-between p-4 ${index !== topCollectors.length - 1 ? 'border-b' : ''} ${theme === 'dark' ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-100'} transition-colors duration-200`}>
+                <div key={collector.id} className={`flex items-center justify-between p-4 ${index !== topCollectors.length - 1 ? 'border-b' : ''} ${theme === 'dark' ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-100'} transition-colors duration-200`}>
                   <div className="flex items-center space-x-4">
                     <span className="text-2xl font-bold text-gray-400 w-8">{index + 1}</span>
                     <Avatar className="h-12 w-12">

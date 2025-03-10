@@ -9,14 +9,15 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useTheme } from '@/app/contexts/ThemeContext'
 import FileUpload from './FileUpload'
 import { createNFTContract } from '../../lib/nfts'
-import { useActiveAccount } from 'thirdweb/react'
+import { useAccount } from 'wagmi'
 
 //verificar se account está conectada
 //tratar erro de salvar no banco de dados
 
 export default function NewContractForm({ onContractSubmit }: { onContractSubmit: (contractAddress: string) => void }) {
     const { theme } = useTheme()
-    const account = useActiveAccount();
+    const account = useAccount();
+   // const { address: userAddress, isConnecting, isDisconnected, isConnected } = useAccount();
     const [loading, setLoading] = useState(false); 
     const [formData, setFormData] = useState({
         contractName: '',

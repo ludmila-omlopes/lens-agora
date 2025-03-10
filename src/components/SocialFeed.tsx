@@ -23,7 +23,7 @@ interface Post {
 const initialPosts: Post[] = [
   {
     id: '1',
-    user: { name: 'Alice', avatar: '/placeholder.svg?text=A' },
+    user: { name: 'Alice', avatar: '/logo1.png' },
     content: 'This NFT is absolutely stunning! 😍',
     likes: 24,
     comments: 3,
@@ -31,7 +31,7 @@ const initialPosts: Post[] = [
   },
   {
     id: '2',
-    user: { name: 'Bob', avatar: '/placeholder.svg?text=B' },
+    user: { name: 'Bob', avatar: '/logo1.png' },
     content: 'I love the use of colors in this piece. The artist has really outdone themselves!',
     likes: 18,
     comments: 2,
@@ -39,7 +39,7 @@ const initialPosts: Post[] = [
   },
   {
     id: '3',
-    user: { name: 'Charlie', avatar: '/placeholder.svg?text=C' },
+    user: { name: 'Charlie', avatar: '/logo1.png' },
     content: 'Does anyone know if there are more pieces in this collection?',
     likes: 7,
     comments: 5,

@@ -2,18 +2,18 @@ import { thirdwebClient } from "./client/thirdwebClient";
 import { getContract } from "thirdweb/contract";
 import { getAddress, NFT, prepareEvent, readContract } from "thirdweb";
 import { lensTestnetChain } from "./lensNetwork";
-import { createListing, getAllListings, getAllValidListings, getListing, isBuyFromListingSupported, isCreateAuctionSupported, isCreateListingSupported, updateListing } from "thirdweb/extensions/marketplace";
+import { createListing, getAllListings, getAllValidAuctions, getAllValidListings, getListing, isBuyFromListingSupported, isCreateAuctionSupported, isCreateListingSupported, updateListing } from "thirdweb/extensions/marketplace";
 import { sendTransaction } from "thirdweb";
 import { approve } from "thirdweb/extensions/erc20";
 import { approveNFT, getCurrentCollection, getCurrentNFT } from "./nfts";
 import { getContractEvents } from "thirdweb";
-import { newListingEvent } from "thirdweb/extensions/marketplace";
-import { MarketplaceInfo } from "./types";
+import { newListingEvent, cancelAuction as callCancelAuction } from "thirdweb/extensions/marketplace";
+import { ListingWithProfile, MarketplaceInfo } from "./types";
 import { getProfileByAddress } from "./profileUtils";
 
 export const marketplaceContractAddress = "0x06A4d039c7450628d52F2D81f59DBD948E07DbdA";
 
-const contract = getContract({
+export const contract = getContract({
     client: thirdwebClient,
     chain: lensTestnetChain,
     address: marketplaceContractAddress, //contrato do marketplace
@@ -73,26 +73,31 @@ export async function editListing(account: any, _listingId: bigint, _pricePerTok
 
 
 export async function getNFTMarketplaceInfo(nft: NFT, nftAddress: string) {
-  //todo: pegar auction status
+  //todo: talvez é melhor pegar todas as listings e auctions
+  //pensar no listingtype 
   const marketplaceInfo = {} as MarketplaceInfo;
   const collection = await getCurrentCollection({ contractAdd: nftAddress });
   if (!collection) {
     return null;
   }
 
-  const listings = await getAllListings({contract}); //se tiver muitas listagens esse método vai ficar pesado
+  const listings = await getAllValidListings({contract}); //se tiver muitas listagens esse método vai ficar pesado
   
   const currentListing = listings.find((listing) => listing.tokenId === nft.id && getAddress(listing.assetContractAddress) === getAddress(nftAddress));
-  console.log("currentListing: ", currentListing);
-  if (!currentListing) {
-    return null;
-  }
 
-  marketplaceInfo.listing = currentListing;
+  const validAuctions = await getAllValidAuctions({
+    contract,
+    start: 0,
+    count: BigInt(10),
+  });
+
+  const currentAuction = validAuctions.find((auction) => auction.tokenId === nft.id && getAddress(auction.assetContractAddress) === getAddress(nftAddress));
+
+  marketplaceInfo.listing = currentListing!;
   marketplaceInfo.nft = nft;
   marketplaceInfo.listingType = 'DIRECT'
   marketplaceInfo.collection = collection;
-  
+  marketplaceInfo.auction = currentAuction!;
   
   return marketplaceInfo;
 }
@@ -117,24 +122,35 @@ async function getListingById(listingId: bigint) {
 
 export async function getAllValidListingsWithProfile() {
   const listings = await getAllValidListings({ contract });
+  const auctions = await getAllValidAuctions({ contract });
+  const allListingsAndAuctions = [...listings, ...auctions];
 
-  const listingsWithProfiles = await Promise.all(
-    listings.map(async (listing) => {
+  const listingsWithProfiles: Array<ListingWithProfile> = await Promise.all(
+    allListingsAndAuctions.map(async (listing) => {
       try {
         const profile = await getProfileByAddress(listing.creatorAddress);
         return {
           ...listing,
           creatorProfile: profile?.name || 'Unknown Creator', // Add profile name or fallback
-        };
+        } as ListingWithProfile;
       } catch (error) {
         console.error(`Failed to fetch profile for address ${listing.creatorAddress}:`, error);
         return {
           ...listing,
           creatorProfile: 'Unknown Creator', // Fallback if profile fetch fails
-        };
+        } as ListingWithProfile;
       }
     })
   );
 
   return listingsWithProfiles;
+}
+
+export async function cancelAuction(account: any, auctionId: bigint) {
+  const transaction = callCancelAuction({
+    contract,
+    auctionId: auctionId,
+  });
+   
+  await sendTransaction({ transaction, account });
 }

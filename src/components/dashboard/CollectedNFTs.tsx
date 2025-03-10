@@ -1,29 +1,24 @@
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import Image from 'next/image'
 import Link from 'next/link'
 import { getNFTMediaURL, listNFTsOwnedBy } from "../../../lib/nfts"
-import { useActiveAccount } from "thirdweb/react"
 import { useEffect, useState } from 'react'
-import { NFT } from "thirdweb"
 import { NFTCollection } from "../../../lib/types"
 import { useAccount } from "wagmi";
 
 
 export default function CollectedNFTs() {
-  const account = useActiveAccount();
-  const { address: familyAddress, isConnecting, isDisconnected } = useAccount();
-  console.log("familyAddress: ", familyAddress);
+  const { address: userAddress, isConnecting, isDisconnected, isConnected } = useAccount();
   const [collectedNFTs, setCollectedNFTs] = useState<NFTCollection[]>([]);
 
   useEffect(() => {
     const fetchNFTs = async () => {
-      if (account) {
-        const nfts = await listNFTsOwnedBy(account.address);
+      if (isConnected && userAddress) {
+        const nfts = await listNFTsOwnedBy(userAddress);
         setCollectedNFTs(nfts);
       }
     };
     fetchNFTs();
-  }, [account]);
+  }, [userAddress]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

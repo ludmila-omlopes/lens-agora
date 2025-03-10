@@ -3,9 +3,9 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Link from "next/link";
-import { useActiveAccount } from "thirdweb/react";
 import { listCreatedContractsByAddress, mintNewNFT } from "../../../lib/nfts";
 import { Collection } from "../../../lib/types";
+import { useAccount } from "wagmi";
 
 export default function DeployedContracts() {
   const [deployedContracts, setDeployedContracts] = useState<Collection[]>([]);
@@ -17,11 +17,11 @@ export default function DeployedContracts() {
     image: null as File | null,
     quantity: 1n,
   });
-  const activeAccount = useActiveAccount();
+  const activeAccount = useAccount();
 
   useEffect(() => {
     const fetchContracts = async () => {
-      if (activeAccount) {
+      if (activeAccount && activeAccount.address) {
         const contracts = await listCreatedContractsByAddress(activeAccount.address);
         setDeployedContracts(contracts);
       }

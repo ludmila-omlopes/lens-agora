@@ -5,32 +5,33 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Moon, Sun } from 'lucide-react'
 import { useTheme } from '@/app/contexts/ThemeContext'
-import { ConnectButton, useActiveAccount } from 'thirdweb/react'
+import { ConnectButton } from 'thirdweb/react'
 import { thirdwebClient } from '../../lib/client/thirdwebClient'
 import { ConnectKitButton } from 'connectkit'
-import { getCurrentSession, login } from '../../lib/lensProtocolUtils'
+import { getCurrentSession, login, logout } from '../../lib/lensProtocolUtils'
 import ProfileSelectDialog from '../../components/ProfileSelectDialog'
 import { useEffect, useState } from 'react'
+import { useAccount } from 'wagmi'
+import { RetroButton } from './customUI/RetroButton'
 
 export default function Header() {
   const { theme, toggleTheme } = useTheme()
-  const account = useActiveAccount();
+  const { address, isConnecting, isDisconnected, isConnected } = useAccount();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentSession, setCurrentSession] = useState<any>(null);
 
+  const handleLogout = () => {
+    logout();
+  };
+
   useEffect(() => {
     const manageSession = async () => {
-      const _currentSession = getCurrentSession();
+      const _currentSession = await getCurrentSession();
       setCurrentSession(_currentSession);
     }
     manageSession();
   }
-  , [account]);
-
-
-  const handleLogin = () => {
-      login(account);
-    };
+  , [isConnected]);
 
   return (
     <header className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white py-4 transition-colors duration-300">
@@ -57,18 +58,18 @@ export default function Header() {
             />
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           </div>
-         
-          {   /*todo: embeleza o botao do thirdweb */ }  
-          {(account && !currentSession) ? (
+          
+          {(isConnected && address && !currentSession) ? (
               <>
-              <Button onClick={handleLogin} className="bg-pink-500 hover:bg-pink-600 text-white">Lens Login</Button>
-                <ProfileSelectDialog account={account} open={isDialogOpen} onOpenChange={setIsDialogOpen} />
+              <ProfileSelectDialog accountAddress={address} open={isDialogOpen} onOpenChange={setIsDialogOpen} />
               </>
             ) : (currentSession) ? (
-             <p>Logged</p>) : <></>}
+              <RetroButton onClick={handleLogout}>
+              Log Out
+            </RetroButton>) : <></>}
              
-           <ConnectButton client={thirdwebClient} /> 
-           {/*<ConnectKitButton />*/}
+           { /*<ConnectButton client={thirdwebClient} /> */ }
+           {<ConnectKitButton />}
           {/* <Button variant="ghost" onClick={toggleTheme}>
             {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>

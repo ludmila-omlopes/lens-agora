@@ -5,8 +5,9 @@ import { useInView } from 'react-intersection-observer';
 import ListedNFTs from './ListedNFTs';
 import Filters from './Filters';
 import { Button } from '@/components/ui/button';
+import { ListingWithProfile } from '../../lib/types';
 
-export default function ExploreNFTs({ listings }: { listings: any[] }) {
+export default function ExploreNFTs({ listings }: { listings: ListingWithProfile[] }) {
   const [nfts, setNfts] = useState(listings.slice(0, 20)); // Initialize with the first 20 listings
   const [hasMore, setHasMore] = useState(listings.length > 20); // Determine if there are more NFTs to load
   const [filters, setFilters] = useState({
@@ -38,10 +39,13 @@ export default function ExploreNFTs({ listings }: { listings: any[] }) {
   const applyFilters = (newFilters: typeof filters) => {
     setFilters(newFilters);
     const filteredNFTs = listings.filter((nft) => {
-      const price = parseFloat((parseFloat(nft.pricePerToken || '0') / 10 ** 18).toFixed(2) || '0');
-      const inPriceRange =
-        price >= newFilters.priceRange[0] && price <= newFilters.priceRange[1];
+      if ('pricePerToken' in nft) {
+        const price = parseFloat((parseFloat(String(nft.pricePerToken) || '0') / 10 ** 18).toFixed(2) || '0');
+        const inPriceRange =
+          price >= newFilters.priceRange[0] && price <= newFilters.priceRange[1];
         return inPriceRange;
+      }
+      return false; // or handle auctions differently if needed
     });
     setNfts(filteredNFTs.slice(0, 20));
     setHasMore(filteredNFTs.length > 20);

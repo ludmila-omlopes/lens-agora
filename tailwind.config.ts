@@ -12,6 +12,12 @@ export default {
   theme: {
   	extend: {
   		colors: {
+			retroText: 'var(--retro-text)',
+			retroBackground: 'var(--retro-background)',
+			retroPrimary: 'var(--retro-primary)',
+			retroSecondary: 'var(--retro-secondary)',
+			retroHover: 'var(--retro-hover)',
+			retroBorder: 'var(--retro-border)',
   			'my-indigo': '#4f45e5',
   			'pastel-pink': '#FFD6E0',
   			'pastel-yellow': '#FFF4E1',
@@ -67,11 +73,18 @@ export default {
   				'5': 'hsl(var(--chart-5))'
   			}
   		},
+		boxShadow: {
+			retro: 'var(--retro-shadow)',
+		  },
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
-  			sm: 'calc(var(--radius) - 4px)'
+  			sm: 'calc(var(--radius) - 4px)',
+			retro: '8px',
   		},
+		fontFamily: {
+			retro: ['Inter', 'sans-serif'],
+		  },
   		keyframes: {
   			'accordion-down': {
   				from: {

@@ -8,6 +8,15 @@ body {
 
 @layer base {
   :root {
+    --retro-text: #000000;
+    --retro-background: #e4e0ff;
+    --retro-primary: #ffffff;
+    --retro-secondary: #f6bcf8;
+    --retro-hover: #90f2f7;
+    --retro-border: #000000;
+    --retro-shadow: -4px 4px 0px #000000;
+    --retro-font: 'Inter', sans-serif;
+
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;

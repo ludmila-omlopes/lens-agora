@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { Abel, Inter } from 'next/font/google'
 import "./globals.css";
 import { Web3Provider } from "./Web3Provider";
-import { Nav } from "../../components/nav";
 import { ThirdwebProvider } from "thirdweb/react";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Footer from "../../components/Footer";

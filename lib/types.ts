@@ -1,5 +1,5 @@
 import { NFT } from "thirdweb";
-import { DirectListing } from "thirdweb/extensions/marketplace";
+import { DirectListing, EnglishAuction } from "thirdweb/extensions/marketplace";
 
 export type Collection = {
     //trazer mais informações como royalties, totalSupply, minted, etc
@@ -18,6 +18,7 @@ export type MarketplaceInfo = {
     nft: NFT;
     collection: Collection;
     listing: DirectListing;
+    auction: EnglishAuction;
 };
 
 export enum ContractTypes {
@@ -50,3 +51,7 @@ export type NFTCollection = {
     collectionAddress: string;
     imageURL?: string;
 };
+
+export type ListingWithProfile = (DirectListing | EnglishAuction) & {
+    creatorProfile: string;
+  };

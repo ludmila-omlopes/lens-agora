@@ -1,23 +1,22 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
 import Link from "next/link";
 import { getAllListingsByAddress } from "../../../lib/marketplacev3";
-import { useActiveAccount } from "thirdweb/react";
 import { DirectListing } from "thirdweb/extensions/marketplace";
 import { getNFTMediaURL } from "../../../lib/nfts";
+import { useAccount } from "wagmi";
 
 export default function ListedNFTs() {
-  const account = useActiveAccount();
+  const { address: userAddress, isConnecting, isDisconnected, isConnected } = useAccount();
   const [listedNFTs, setListedNFTs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchListedNFTs = async () => {
-      if (account) {
+      if (isConnected) {
         try {
-          const address = account.address;
+          const address = userAddress;
           const listings = await getAllListingsByAddress(address!);
           const nfts = listings.map((listing: DirectListing) => ({
             id: listing.id,
@@ -40,13 +39,13 @@ export default function ListedNFTs() {
     };
 
     fetchListedNFTs();
-  }, [account]);
+  }, [userAddress]);
 
   if (loading) {
     return <p>Loading...</p>;
   }
 
-  if (!account) {
+  if (!isConnected) {
     return <p>Please connect your account to view listed NFTs.</p>;
   }
 

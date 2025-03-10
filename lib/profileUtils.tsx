@@ -22,8 +22,6 @@ export async function getProfileByAddress(address: string) {
         finalProfile.name = ensProfile.name!;
         const metadata = ensProfile.metadata as EnsProfile;
         finalProfile.image = metadata.avatar!;
-        console.log("fmetadata.avatar: ", metadata.avatar);
-        console.log("profile metadata: ", metadata);
         finalProfile.bio = ensProfile.bio!;
       }
 

@@ -12,8 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast"
 import NewContractForm from './NewContractForm'
 import { createNFTContract, getCurrentCollection, mintNewNFT } from '../../lib/nfts'
-import { useActiveAccount } from 'thirdweb/react'
 import FileUpload from './FileUpload'
+import { useAccount } from 'wagmi'
+import { useThirdwebWallet } from '@/hooks/useThirdwebWallet'
+import { useActiveAccount } from 'thirdweb/react'
 
 //todo: no step 2, mostrar o nome da collection. Já tem o objeto pronto.
 //todo: depois de mintar o NFT, mostrar alguma mensagem de sucesso e redirecionar a pagina
@@ -26,10 +28,12 @@ export default function CreateNFTProcess() {
   const [selectedContract, setSelectedContract] = useState('')
   const [isContractSubmitted, setIsContractSubmitted] = useState(false)
   const [newContractAddress, setNewContractAddress] = useState<string | null>(null);
-  const account = useActiveAccount();
+  const { address, isConnecting, isDisconnected, isConnected } = useAccount();
   const [loading, setLoading] = useState(false);
   const [contractType, setContractType] = useState<string | null>(null);
   const { toast } = useToast()
+  useThirdwebWallet();
+  const account = useActiveAccount();
   const [nftDetails, setNftDetails] = useState({
     name: '',
     description: '',
@@ -97,7 +101,7 @@ export default function CreateNFTProcess() {
 
   const handleMintNFT = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!account) {
+    if (!account || !account.address) {
       toast({
         title: 'Error',
         description: 'You must be connected to your wallet to mint an NFT.',
@@ -156,7 +160,7 @@ export default function CreateNFTProcess() {
 
   
 useEffect(() => {
-    if (!account) return;
+    if (!account || !account.address) return;
 
     const fetchContracts = async () => {
             const response = await fetch(`/api/listContractsByAddress?address=${account.address}`, {
@@ -215,7 +219,7 @@ useEffect(() => {
                   <SelectValue placeholder="Select a contract" />
                 </SelectTrigger>
                 <SelectContent> 
-                  {contracts.map((contract) => (
+                  {contracts && contracts.map((contract) => (
                     <SelectItem key={contract.contract_address} value={contract.contract_address}> 
                       {contract.contract_address } {/* todo: colocar o nome do contrato no bd */}
                     </SelectItem>
