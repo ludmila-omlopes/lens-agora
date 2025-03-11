@@ -60,6 +60,9 @@ const ProfileSelectDialog: React.FC<ProfileSelectDialogProps> = ({
     const handleProfileClick = async (lensAccount: AccountAvailable) => {
         try {
             const sessionClient = await loginWithAccount(accountAddress, lensAccount.account);
+            console.log('sessionClient: ', sessionClient);
+            onOpenChange(false); 
+            window.location.reload(); 
         } catch (err) {
             console.error('Error logging in with account:', err);
             setError('Failed to login with the selected profile. Please try again later.');

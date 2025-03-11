@@ -20,8 +20,9 @@ export default function Header() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentSession, setCurrentSession] = useState<any>(null);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
+    window.location.reload(); // ✅ Refresh page on logout
   };
 
   useEffect(() => {
