@@ -2,7 +2,7 @@ import { thirdwebClient } from "./client/thirdwebClient";
 import { getContract } from "thirdweb/contract";
 import { getAddress, NFT, prepareEvent, readContract } from "thirdweb";
 import { lensTestnetChain } from "./lensNetwork";
-import { createListing, getAllListings, getAllValidAuctions, getAllValidListings, getListing, isBuyFromListingSupported, isCreateAuctionSupported, isCreateListingSupported, updateListing } from "thirdweb/extensions/marketplace";
+import { cancelListing as callCancelListing, createListing, getAllListings, getAllValidAuctions, getAllValidListings, getListing, isBuyFromListingSupported, isCreateAuctionSupported, isCreateListingSupported, updateListing } from "thirdweb/extensions/marketplace";
 import { sendTransaction } from "thirdweb";
 import { approve } from "thirdweb/extensions/erc20";
 import { approveNFT, getCurrentCollection, getCurrentNFT } from "./nfts";
@@ -68,6 +68,15 @@ export async function editListing(account: any, _listingId: bigint, _pricePerTok
     endTimestamp: _endTimestamp,
   });
 
+  await sendTransaction({ transaction, account });
+}
+
+export async function cancelListing(account: any, listingId: bigint) {
+  const transaction = callCancelListing({
+    contract,
+    listingId: listingId,
+  });
+   
   await sendTransaction({ transaction, account });
 }
 

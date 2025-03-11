@@ -2,13 +2,18 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { BuyDirectListingButton, useActiveAccount } from "thirdweb/react";
 import { CreateAuctionButton } from "@/components/CreateAuctionButton";
-import { cancelAuction, marketplaceContractAddress } from "../../../lib/marketplacev3";
+import { cancelAuction, cancelListing, marketplaceContractAddress } from "../../../lib/marketplacev3";
 import { lensTestnetChain } from "../../../lib/lensNetwork";
 import { thirdwebClient } from "../../../lib/client/thirdwebClient";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MarketplaceInfo } from "../../../lib/types";
 import { useAccount } from "wagmi";
 import { useThirdwebWallet } from "@/hooks/useThirdwebWallet";
+import { ListForSaleDialog } from "../ListForSaleDialog";
+import { CreateAuctionDialog } from "../CreateAuctionDialog";
+import { useRouter } from "next/navigation";
+
+//todo: ao listar, cancelar, etc atualizar a página não está de fato atualizando a requisição.
 
 type NFTBuyActionsProps = {
   isOwner: boolean;
@@ -27,6 +32,7 @@ export const NFTBuyActions: React.FC<NFTBuyActionsProps> = ({
 }) => {
   useThirdwebWallet();
   const thirdwebAccount = useActiveAccount();
+  const router = useRouter();
   
   const [isSaleDialogOpen, setIsSaleDialogOpen] = useState(false);
   const [isAuctionDialogOpen, setIsAuctionDialogOpen] = useState(false);
@@ -57,8 +63,19 @@ export const NFTBuyActions: React.FC<NFTBuyActionsProps> = ({
     try {
       await cancelAuction(thirdwebAccount, marketplaceInfo.auction.id);
       alert("Auction cancelled successfully!");
+      router.refresh();
     } catch (error) {
       console.error("Error cancelling auction:", error);
+    }
+  };
+
+  const handleCancelListing = async () => {
+    try {
+      await cancelListing(thirdwebAccount, marketplaceInfo.listing.id);
+      alert("Listing cancelled successfully!");
+      router.refresh();
+    } catch (error) {
+      console.error("Error cancelling listing:", error);
     }
   };
 
@@ -73,7 +90,7 @@ export const NFTBuyActions: React.FC<NFTBuyActionsProps> = ({
 
       {/* Cancel Listing Button (Only for NFT Owners) */}
       {marketplaceInfo && marketplaceInfo.listing && marketplaceInfo.listing.status !== "CANCELLED" && marketplaceInfo.listing.creatorAddress === userAddress && isConnected && (
-        <Button onClick={() => console.log('Cancel listing logic')} className="flex-1 bg-pink-500 hover:bg-pink-600">
+        <Button onClick={handleCancelListing} className="flex-1 bg-pink-500 hover:bg-pink-600">
           Cancel Listing
         </Button>
       )}
@@ -105,14 +122,17 @@ export const NFTBuyActions: React.FC<NFTBuyActionsProps> = ({
         </Button>
       )}
 
-      {/* ✅ Auction Dialog */}
+      {/* Dialogs */}
+      <ListForSaleDialog isOpen={isSaleDialogOpen} onClose={() => setIsSaleDialogOpen(false)} assetContract={assetContract} tokenId={tokenId} />
+      <CreateAuctionDialog isOpen={isAuctionDialogOpen} onClose={() => setIsAuctionDialogOpen(false)} contractAddress={contractAddress} assetContract={assetContract} tokenId={tokenId} />
+
+      {/* ✅ Auction Dialog 
       <Dialog open={isAuctionDialogOpen} onOpenChange={setIsAuctionDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Start Auction</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Starting Bid Input */}
             <label className="block">Starting Bid</label>
             <input
               type="text"
@@ -123,7 +143,6 @@ export const NFTBuyActions: React.FC<NFTBuyActionsProps> = ({
               onChange={handleAuctionInputChange}
             />
 
-            {/* Buyout Price Input */}
             <label className="block">Buyout Price (Optional)</label>
             <input
               type="text"
@@ -133,8 +152,6 @@ export const NFTBuyActions: React.FC<NFTBuyActionsProps> = ({
               value={auctionDetails.buyoutPrice}
               onChange={handleAuctionInputChange}
             />
-
-            {/* Currency Selector */}
             <label className="block">Currency</label>
             <select
               name="currency"
@@ -146,8 +163,6 @@ export const NFTBuyActions: React.FC<NFTBuyActionsProps> = ({
               <option value={undefined}>GHO</option>
               <option value="BONSAI (soon)" disabled>BONSAI</option>
             </select>
-
-            {/* End Date (Final Date) */}
             <label className="block">Auction End Date</label>
             <input
               type="datetime-local"
@@ -173,7 +188,7 @@ export const NFTBuyActions: React.FC<NFTBuyActionsProps> = ({
             />
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog>*/}
     </div>
   );
 };
