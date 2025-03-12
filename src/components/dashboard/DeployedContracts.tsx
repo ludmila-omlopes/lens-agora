@@ -9,6 +9,7 @@ import { useAccount } from "wagmi";
 
 export default function DeployedContracts() {
   const [deployedContracts, setDeployedContracts] = useState<Collection[]>([]);
+  const [isLoading, setIsLoading] = useState(true); // ✅ Add loading state
   const [activeContract, setActiveContract] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -22,8 +23,15 @@ export default function DeployedContracts() {
   useEffect(() => {
     const fetchContracts = async () => {
       if (activeAccount && activeAccount.address) {
-        const contracts = await listCreatedContractsByAddress(activeAccount.address);
-        setDeployedContracts(contracts);
+        setIsLoading(true); // ✅ Start loading
+        try {
+          const contracts = await listCreatedContractsByAddress(activeAccount.address);
+          setDeployedContracts(contracts);
+        } catch (error) {
+          console.error("Error fetching deployed contracts:", error);
+        } finally {
+          setIsLoading(false); // ✅ Stop loading
+        }
       }
     };
     fetchContracts();
@@ -70,7 +78,7 @@ export default function DeployedContracts() {
         description,
         mintToAdd: activeAccount?.address!,
         account: activeAccount,
-        media: image
+        media: image,
       });
 
       closeDialog();
@@ -79,29 +87,40 @@ export default function DeployedContracts() {
     }
   };
 
+  if (isLoading) {
+    return <div>Loading deployed contracts...</div>; // ✅ Show loading state
+  }
+
   return (
     <div className="space-y-6">
-      {deployedContracts.map((contract) => (
-        <Card key={contract.address}>
-          <CardHeader>
-            <CardTitle>{contract.name}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm mb-2">Contract Address: {contract.address}</p>
-            <p className="text-sm mb-2">Type: {contract.type}</p>
-            <p className="text-sm mb-2">NFTs: {contract.name}</p>
-            <p className="text-sm mb-2">Symbol: {contract.symbol}</p>
-          </CardContent>
-          <CardFooter className="flex justify-between items-center">
-            <Button variant="outline" size="sm" onClick={() => openDialog(contract.address)}>
-              Mint NFT
-            </Button>
-            <Link href={`/contract/${contract.address}`} className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300">
-              View Details
-            </Link>
-          </CardFooter>
-        </Card>
-      ))}
+      {deployedContracts.length === 0 ? (
+        <p>No deployed contracts found.</p> // ✅ Show message if no contracts exist
+      ) : (
+        deployedContracts.map((contract) => (
+          <Card key={contract.address}>
+            <CardHeader>
+              <CardTitle>{contract.name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm mb-2">Contract Address: {contract.address}</p>
+              <p className="text-sm mb-2">Type: {contract.type}</p>
+              <p className="text-sm mb-2">NFTs: {contract.name}</p>
+              <p className="text-sm mb-2">Symbol: {contract.symbol}</p>
+            </CardContent>
+            <CardFooter className="flex justify-between items-center">
+              <Button variant="outline" size="sm" onClick={() => openDialog(contract.address)}>
+                Mint NFT
+              </Button>
+              <Link
+                href={`/contract/${contract.address}`}
+                className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                View Details
+              </Link>
+            </CardFooter>
+          </Card>
+        ))
+      )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
