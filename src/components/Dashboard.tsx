@@ -11,6 +11,8 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('collected')
   const account = useAccount();
 
+  //todo: aqui os fetches estão sendo feitos no componente, mas o ideal é que sejam feitos no page.tsx e passados como props
+
   return (
     <Tabs defaultValue="collected" onValueChange={(value) => setActiveTab(value)}>
       <TabsList className="grid w-full grid-cols-3 mb-8">

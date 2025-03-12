@@ -11,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import NewContractForm from './NewContractForm'
-import { createNFTContract, getCurrentCollection, mintNewNFT } from '../../lib/nfts'
+import { createNFTContract, getCurrentCollection, listCreatedContractsByAddress, mintNewNFT } from '../../lib/nfts'
 import FileUpload from './FileUpload'
 import { useAccount } from 'wagmi'
 import { useThirdwebWallet } from '@/hooks/useThirdwebWallet'
@@ -162,25 +162,10 @@ export default function CreateNFTProcess() {
 useEffect(() => {
     if (!account || !account.address) return;
 
-    const fetchContracts = async () => {
-            const response = await fetch(`/api/listContractsByAddress?address=${account.address}`, {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                });
-    
-            if (!response.ok) {
-                console.error("Failed to fetch contracts:", response.statusText);
-                return [];
-            }
-            return response.json();
-        };
-
     const fetchAndSetContracts = async () => {
-            const fetchedContracts = await fetchContracts();
+            const fetchedContracts = await listCreatedContractsByAddress(account.address);
             if(fetchedContracts){
-                    setContracts(fetchedContracts.contracts);
+                    setContracts(fetchedContracts);
             }
     };
 
@@ -220,8 +205,8 @@ useEffect(() => {
                 </SelectTrigger>
                 <SelectContent> 
                   {contracts && contracts.map((contract) => (
-                    <SelectItem key={contract.contract_address} value={contract.contract_address}> 
-                      {contract.contract_address } {/* todo: colocar o nome do contrato no bd */}
+                    <SelectItem key={contract.address} value={contract.address}> 
+                      {contract.name}: {contract.address}
                     </SelectItem>
                   ))}
                 </SelectContent>
