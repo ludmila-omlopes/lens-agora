@@ -11,7 +11,11 @@ export type Collection = {
     owner: string;
     symbol: string;
     is1155: boolean;
+    items?: NFT[];
+    totalItems?: number;
+    marketplaceInfo?: CollectionMarketplaceInfo;
 };
+//stats: { items: 1000, owners: 750, floorPrice: '0.5 ETH', volumeTraded: '1250 ETH' }
 
 export type MarketplaceInfo = {
     listingType: string;
@@ -19,6 +23,14 @@ export type MarketplaceInfo = {
     collection: Collection;
     listing: DirectListing;
     auction: EnglishAuction;
+};
+
+export type CollectionMarketplaceInfo = {
+    collectionAddress: string;
+    floorPrice: number;
+    volumeTraded: number;
+    totalListedItems: number;
+    minBid: number;
 };
 
 export enum ContractTypes {

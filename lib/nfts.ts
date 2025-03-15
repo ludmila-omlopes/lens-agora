@@ -10,12 +10,13 @@ import { isERC1155 } from "thirdweb/extensions/erc1155";
 import { setClaimConditions } from "thirdweb/extensions/erc721";
 import { resolveScheme } from "thirdweb/storage";
 import { Collection, NFTCollection } from "./types";
-import { marketplaceContractAddress } from "./marketplacev3";
+import { getCollectionMarketplaceInfo, marketplaceContractAddress } from "./marketplacev3";
 import { getERC1155OwnedByAddress, getERC721OwnedByAddress } from "./thirdwebUtils";
 import { addDeployedContract, listDeployedContractsByAddress } from "./db";
 import { isNullish } from "@apollo/client/cache/inmemory/helpers";
 import { immutable, StorageClient } from "@lens-chain/storage-client";
 import { upload } from "thirdweb/storage";
+import { list } from "postcss";
 
 export async function getCurrentNFT({ contractAdd, tokenId }: { contractAdd: string, tokenId: bigint }) {
    const contract = getContract({
@@ -47,7 +48,13 @@ export async function getCurrentNFT({ contractAdd, tokenId }: { contractAdd: str
     return null;
 }
 
-//todo: adicionar o tipo do contrato
+/**
+ * Retrieves the current collection metadata and details for a given contract address.
+ * @param {Object} params - The parameters for the function.
+ * @param {string} params.contractAdd - The contract address of the NFT collection.
+ * @returns {Promise<Collection>} The collection metadata and details.
+ */
+//todo: adicionar o tipo do contrato (drop, etc)	
 export async function getCurrentCollection({ contractAdd }: { contractAdd: string }) {
   const contract = getContract({
     client: thirdwebClientServer,
@@ -55,33 +62,15 @@ export async function getCurrentCollection({ contractAdd }: { contractAdd: strin
     address: contractAdd,
   });
 
-  //todo: tentar agregar num multicall?
-  //https://portal.thirdweb.com/references/typescript/v5/common/multicall
+const [contractOwner, contractMetadataURI, isMultiNFT, marketplaceInfo] = await Promise.all([
+  readContract({ contract, method: "function owner() view returns (address)", params: [] }),
+  readContract({ contract, method: "function contractURI() view returns (string)", params: [] }),
+  isERC1155({ contract }),
+  getCollectionMarketplaceInfo(contractAdd)
+]);
 
-  const contractOwner = await readContract({
-    contract,
-    method: "function owner() view returns (address)",
-    params: [],
-  });
-
-  const contractMetadataURI = await readContract({
-    contract,
-    method: "function contractURI() view returns (string)",
-    params: [],
-  });
-
-  const ismultiNFT = await isERC1155({ contract });
-
-const contractMetadata = resolveScheme({uri: contractMetadataURI!, client: thirdwebClientServer});
-const metadataResponse = await fetch(contractMetadata);
-const metadata = await metadataResponse.json();
-console.log("metadata: ", metadata);
-
-//const nfts = await getNFTs({
-//  contract,
-//  start: 0,
-//  count: 10,
-//});
+const metadataUrl = resolveScheme({ uri: contractMetadataURI!, client: thirdwebClientServer });
+const metadata = await fetch(metadataUrl).then(res => res.json());
 
 //getDefaultRoyaltyInfo
 //getPlatformFeeInfo
@@ -92,10 +81,15 @@ const contractSymbol = metadata.symbol;
 const description = metadata.description;
 const imageURI = metadata.image;
 const imageURL = metadata.image && resolveScheme({uri: imageURI, client: thirdwebClientServer});
-const socialLinks = metadata.links; 
+const socialLinks = metadata.links;  //todo: colocar isso na tela
 
-//stats: { items: 1000, owners: 750, floorPrice: '0.5 ETH', volumeTraded: '1250 ETH' }
-//lista de NFTs?
+// ✅ Fetch NFT list in parallel with metadata fetching
+const itemsPromise = listNFTs({ contractAdd, start: 0, count: 10 }); //todo: pegar todos ou não?
+
+// ✅ Await NFTs (previously executed in parallel)
+const items = await itemsPromise;
+
+//stats: { owners: 750, floorPrice: '0.5 ETH', volumeTraded: '1250 ETH' }
 
   const collection = {
     name: contractName,
@@ -104,15 +98,16 @@ const socialLinks = metadata.links;
     description: description,
     imageUrl: imageURL,
     symbol: contractSymbol,
-    is1155: ismultiNFT,
+    is1155: isMultiNFT,
+    items: items,
+    totalItems: items ? items.length : 0,
+    marketplaceInfo: marketplaceInfo
   } as Collection;
 
   return collection;
 }
 
-//todo: criar um type NFT + collection e ja trazer aqui
 export async function listNFTs({ contractAdd, start, count }: { contractAdd: string, start: number, count: number }) {
-  //todo: ja resolver o IPFS aqui e retornar o link direto
   
   const contract = getContract({
     client: thirdwebClientServer,
@@ -232,7 +227,7 @@ export async function mintNewNFT({ contractAdd, name, quantity, description, min
             nft: response.gatewayUrl,
         });
 
-        await sendTransaction({ transaction, account });
+       return  await sendTransaction({ transaction, account });
     }
     else if(ismultiNFT) {                       
       const transaction = mintERC1155to({
@@ -242,7 +237,7 @@ export async function mintNewNFT({ contractAdd, name, quantity, description, min
       nft: response.gatewayUrl,
       });
 
-      await sendTransaction({ transaction, account });
+      return await sendTransaction({ transaction, account });
   }
 
   return null;

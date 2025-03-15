@@ -8,7 +8,7 @@ import { approve } from "thirdweb/extensions/erc20";
 import { approveNFT, getCurrentCollection, getCurrentNFT } from "./nfts";
 import { getContractEvents } from "thirdweb";
 import { newListingEvent, cancelAuction as callCancelAuction } from "thirdweb/extensions/marketplace";
-import { ListingWithProfile, MarketplaceInfo } from "./types";
+import { Collection, CollectionMarketplaceInfo, ListingWithProfile, MarketplaceInfo } from "./types";
 import { getProfileByAddress } from "./profileUtils";
 
 export const marketplaceContractAddress = "0x06A4d039c7450628d52F2D81f59DBD948E07DbdA";
@@ -90,7 +90,7 @@ export async function getNFTMarketplaceInfo(nft: NFT, nftAddress: string) {
     return null;
   }
 
-  const listings = await getAllValidListings({contract}); //se tiver muitas listagens esse método vai ficar pesado
+  const listings = await getAllValidListings({contract}); //só pega de 100 em 100, tem que indexar
   
   const currentListing = listings.find((listing) => listing.tokenId === nft.id && getAddress(listing.assetContractAddress) === getAddress(nftAddress));
 
@@ -109,6 +109,23 @@ export async function getNFTMarketplaceInfo(nft: NFT, nftAddress: string) {
   marketplaceInfo.auction = currentAuction!;
   
   return marketplaceInfo;
+}
+
+export async function getCollectionMarketplaceInfo(collectionAddress: string) {
+  if (!collectionAddress) {
+    return null;
+  }
+
+  const listings = await getAllValidListings({contract}); //só pega de 100 em 100, tem que indexar
+  const validListings = listings.filter((listing) => getAddress(listing.assetContractAddress) === getAddress(collectionAddress));
+
+  const collectionMarketplaceInfo = {} as CollectionMarketplaceInfo;
+  collectionMarketplaceInfo.collectionAddress = collectionAddress;
+  collectionMarketplaceInfo.totalListedItems = validListings.length;
+  collectionMarketplaceInfo.floorPrice = validListings && validListings.length > 0 ? (validListings.reduce((minPrice, listing) => Math.min(minPrice, Number(listing.pricePerToken)), Infinity))/(10**18) : 0;
+  collectionMarketplaceInfo.minBid = 0; //todo: calcular menor lance
+  collectionMarketplaceInfo.volumeTraded = 0; //todo: calcular volume de transações
+  return collectionMarketplaceInfo;
 }
 
 export async function getAllListingsByAddress(address: string) {

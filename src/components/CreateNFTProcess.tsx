@@ -11,6 +11,8 @@ export default function CreateNFTProcess() {
   const { contractChoice, selectedContract, contracts, isContractSubmitted, handleContractChoice, handleContractSubmit, handleSelectContract, loading } = useContractSelection();
   const [step, setStep] = useState(1);
 
+  //todo: os toasts não estão funcionando. Ao mintar o NFT, encaminhar pra pagina dele.
+
   return (
     <Card>
       <CardHeader>
@@ -38,7 +40,6 @@ export default function CreateNFTProcess() {
             ← Back to Contract Selection
           </Button>
 
-          {/* NFT Details Form */}
           <NFTDetailsForm selectedContract={selectedContract!} />
         </div>
         )}

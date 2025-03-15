@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { mintNewNFT } from "../../lib/nfts"; // Ensure this function exists in your project
 import { useActiveAccount } from "thirdweb/react";
 import { useThirdwebWallet } from "./useThirdwebWallet";
+import { useRouter } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 export function useMintNFT(selectedContract: string) {
   const [nftDetails, setNftDetails] = useState({
@@ -16,6 +18,9 @@ export function useMintNFT(selectedContract: string) {
   const { toast } = useToast();
   useThirdwebWallet();
   const account = useActiveAccount();
+  const router = useRouter(); // ✅ Initialize Next.js router
+  const [isPending, startTransition] = useTransition()
+
 
   // Handles input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -62,11 +67,12 @@ export function useMintNFT(selectedContract: string) {
         media: nftDetails.file!,
       });
 
-      toast({
-        title: "Success",
-        description: `NFT minted successfully: ${response}`,
-        variant: "default",
-      });
+      console.log("NFT mint response:", response);
+
+      startTransition(() => {
+        router.push(`/items/${selectedContract}`);
+      }
+      );
 
       setNftDetails({ name: "", description: "", file: null, supply: 1 });
     } catch (error) {
@@ -87,5 +93,6 @@ export function useMintNFT(selectedContract: string) {
     handleFileSelect,
     mintNFT,
     loading,
+    isPending
   };
 }

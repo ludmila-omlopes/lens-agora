@@ -11,7 +11,7 @@ interface NFTDetailsFormProps {
 }
 
 export default function NFTDetailsForm({ selectedContract }: NFTDetailsFormProps) {
-  const { nftDetails, handleInputChange, handleFileSelect, mintNFT, loading } = useMintNFT(selectedContract.address);
+  const { nftDetails, handleInputChange, handleFileSelect, mintNFT, loading, isPending } = useMintNFT(selectedContract.address);
 
   return (
     <form onSubmit={mintNFT} className="space-y-6">
@@ -27,7 +27,7 @@ export default function NFTDetailsForm({ selectedContract }: NFTDetailsFormProps
         <Label>Upload Image or Video</Label>
         <FileUpload onFileSelect={handleFileSelect} />
       </div>
-      <Button type="submit" disabled={loading}>
+      <Button type="submit" disabled={loading || isPending}>
         {loading ? 'Minting... Please Wait' : 'Mint NFT'}
       </Button>
     </form>
