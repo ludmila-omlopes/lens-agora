@@ -286,7 +286,7 @@ export function getNFTMediaURL(nft: NFT) {
   if (nft.metadata && nft.metadata.image) {
     return resolveScheme({ uri: nft.metadata.image, client: thirdwebClientServer });
   }
-  return "/placeholder.png";
+  return "/logo1.png";
 }
 
 export async function approveNFT(nft: NFT, nftcontract: string, account: any) {

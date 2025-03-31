@@ -1,15 +1,20 @@
 import { thirdwebClient } from "./client/thirdwebClient";
 import { getContract } from "thirdweb/contract";
-import { getAddress, NFT, prepareEvent, readContract } from "thirdweb";
+import { defineChain, getAddress, NATIVE_TOKEN_ADDRESS, NFT, prepareEvent, readContract, sendAndConfirmTransaction } from "thirdweb";
 import { lensTestnetChain } from "./lensNetwork";
-import { cancelListing as callCancelListing, createListing, getAllListings, getAllValidAuctions, getAllValidListings, getListing, isBuyFromListingSupported, isCreateAuctionSupported, isCreateListingSupported, updateListing } from "thirdweb/extensions/marketplace";
+import { bidInAuction as callBidInAuction, cancelListing as callCancelListing, 
+  createListing, getAllListings, getAllValidOffers as callGetAllValidOffers, getAllOffers as callGetAllOffers,
+  getAllValidAuctions, getAllValidListings, getListing, 
+  isBuyFromListingSupported, isCreateAuctionSupported, isCreateListingSupported, 
+  updateListing, makeOffer as callMakeOffer, acceptOffer as callAcceptOffer } from "thirdweb/extensions/marketplace";
 import { sendTransaction } from "thirdweb";
-import { approve } from "thirdweb/extensions/erc20";
+import { allowance, approve, getApprovalForTransaction } from "thirdweb/extensions/erc20";
 import { approveNFT, getCurrentCollection, getCurrentNFT } from "./nfts";
 import { getContractEvents } from "thirdweb";
 import { newListingEvent, cancelAuction as callCancelAuction } from "thirdweb/extensions/marketplace";
 import { Collection, CollectionMarketplaceInfo, ListingWithProfile, MarketplaceInfo } from "./types";
 import { getProfileByAddress } from "./profileUtils";
+import { useSendAndConfirmTransaction } from "thirdweb/react";
 
 export const marketplaceContractAddress = "0x06A4d039c7450628d52F2D81f59DBD948E07DbdA";
 
@@ -91,17 +96,11 @@ export async function getNFTMarketplaceInfo(nft: NFT, nftAddress: string) {
   }
 
   const listings = await getAllValidListings({contract}); //só pega de 100 em 100, tem que indexar
-  
   const currentListing = listings.find((listing) => listing.tokenId === nft.id && getAddress(listing.assetContractAddress) === getAddress(nftAddress));
 
-  const validAuctions = await getAllValidAuctions({
-    contract,
-    start: 0,
-    count: BigInt(10),
-  });
+  const validAuctions = await getAllValidAuctions({contract});
 
   const currentAuction = validAuctions.find((auction) => auction.tokenId === nft.id && getAddress(auction.assetContractAddress) === getAddress(nftAddress));
-
   marketplaceInfo.listing = currentListing!;
   marketplaceInfo.nft = nft;
   marketplaceInfo.listingType = 'DIRECT'
@@ -176,6 +175,80 @@ export async function cancelAuction(account: any, auctionId: bigint) {
   const transaction = callCancelAuction({
     contract,
     auctionId: auctionId,
+  });
+   
+  await sendTransaction({ transaction, account });
+}
+
+export async function bidInAuction(account: any, auctionId: bigint, bidAmount: string) {
+  const transaction = callBidInAuction({
+    contract,
+    auctionId: auctionId,
+    bidAmount: bidAmount,
+  });
+   
+  await sendTransaction({ transaction, account });
+}
+
+export async function getAllValidOffers(collectionAddress: string, tokenId: bigint) {
+  const offers = await callGetAllOffers({contract});
+
+  const validOffers = offers.filter((offer) => getAddress(offer.assetContractAddress) === getAddress(collectionAddress) && offer.tokenId === tokenId);
+  return validOffers; 
+}
+
+export async function makeOffer(account: any, collectionAddress: string, tokenId: bigint, offerAmount: string, offerExpiresAt: Date) {
+    
+  const tx = callMakeOffer({
+    contract,
+    assetContractAddress: getAddress(collectionAddress),
+    tokenId: BigInt(tokenId),
+    totalOffer: offerAmount,
+    offerExpiresAt: offerExpiresAt,
+    currencyContractAddress: "0xeee5a340Cdc9c179Db25dea45AcfD5FE8d4d3eB8" //wgrass todo: get from user
+  });
+  
+  const contractWgrass = getContract({
+    address: "0xeee5a340Cdc9c179Db25dea45AcfD5FE8d4d3eB8",
+    chain: lensTestnetChain,
+    client: thirdwebClient,
+  });
+  
+  const approvedValue = await allowance({
+    contract: contractWgrass,
+    owner: account.address,
+    spender: contract.address,
+  });
+
+  console.log("approvedValue: ", approvedValue);
+
+  const appTx =  approve({
+    contract: contractWgrass,
+    amount: offerAmount,
+    spender: contract.address,
+  });
+
+  console.log("approveTransaction: ", appTx);
+  await sendTransaction({ transaction: appTx, account });
+
+  const offerTx2 = callMakeOffer({
+    contract,
+    assetContractAddress: "0x1234567890123456789012345678901234567890",
+    tokenId: 1n,
+    offerExpiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+    totalOffer: "1.0",
+    currencyContractAddress: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+   });
+
+   return tx;
+   
+  //await sendTransaction({ transaction: tx, account });
+}
+
+export async function acceptOffer(account: any, offerId: bigint) {
+  const transaction = callAcceptOffer({
+    contract,
+    offerId: offerId,
   });
    
   await sendTransaction({ transaction, account });

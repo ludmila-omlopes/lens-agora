@@ -4,8 +4,7 @@ import { thirdwebClientServer } from '../../../../../lib/client/thirdwebClient';
 import { getNFTMarketplaceInfo } from '../../../../../lib/marketplacev3';
 import { MarketplaceInfo } from '../../../../../lib/types';
 import { createWallet } from "thirdweb/wallets";
-import NFTDetails from './itemClient';
-import NFTDetails2 from './NFTDetails';
+import NFTDetails from './NFTDetails';
 
 const contractAddress1155 = "0xC0Fe17Fcd179d9192205b949d967f39d98645Ee7";
 const contractAddress721 = "0x35d4AdfB8Bb4Bb16051D9e1b7784E8715F6f9ae5";
@@ -21,13 +20,15 @@ export default async function NFTDetailsPage({ params }: { params: { address: st
  
  const collection = await getCurrentCollection({ contractAdd: params.address });
  const marketplaceInfo = nft && await getNFTMarketplaceInfo(nft, params.address);
+ console.log("marketplaceInfo: ", marketplaceInfo);
 
   //return ( <NFTDetailsClient nft={nft} collection={collection} marketplaceInfo={marketplaceInfo!}/> );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-100 to-orange-100 dark:from-gray-900 dark:via-purple-900 dark:to-violet-800">
       <div className="container mx-auto py-8">
-        <NFTDetails2 nft={nft} collection={collection} marketplaceInfo={marketplaceInfo!} />
+        {/*<NFTDetails2 nft={nft} collection={collection} marketplaceInfo={marketplaceInfo!} />*/}
+        <NFTDetails nft={nft} marketplaceInfo={marketplaceInfo!} />
       </div>
     </div>
   )
