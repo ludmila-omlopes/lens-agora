@@ -5,13 +5,16 @@ import { getNFTMarketplaceInfo } from '../../../../../lib/marketplacev3';
 import { MarketplaceInfo } from '../../../../../lib/types';
 import { createWallet } from "thirdweb/wallets";
 import NFTDetails from './NFTDetails';
+import { notFound } from 'next/navigation';
 
 const contractAddress1155 = "0xC0Fe17Fcd179d9192205b949d967f39d98645Ee7";
 const contractAddress721 = "0x35d4AdfB8Bb4Bb16051D9e1b7784E8715F6f9ae5";
 
 
 export default async function NFTDetailsPage({ params }: { params: { address: string, id: string } }) {
-  
+  if (process.env.NODE_ENV === "production") {
+    return notFound(); // or redirect("/")
+  }
  const nft = await getCurrentNFT({ contractAdd: params.address, tokenId: BigInt(params.id) });
  //avisar o thirdweb que owner tá vindo nulo
  if (!nft) {

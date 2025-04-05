@@ -9,6 +9,7 @@ import { getFeaturedListings } from '../../lib/marketplacev3'
 import { DirectListing } from 'thirdweb/extensions/marketplace'
 import TopCollectors from '@/components/TopCollectors'
 import GroupsHighlight from '@/components/GroupsHighlight'
+import LaunchingSoonPage from './soon/page'
 
 export default function Home() {
   const { theme } = useTheme()
@@ -26,6 +27,10 @@ export default function Home() {
 
     fetchFeaturedNFTs()
   }, [])
+
+  if (process.env.NODE_ENV === "production") {
+    return <LaunchingSoonPage />
+  }
 
   return (
     <div className={`min-h-screen ${theme === 'dark' ? 'bg-gradient-to-br from-gray-900 via-purple-900 to-violet-800' : 'bg-gradient-to-br from-purple-100 via-pink-100 to-orange-100'} transition-colors duration-300`}>

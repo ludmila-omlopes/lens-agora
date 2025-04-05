@@ -66,3 +66,29 @@ export const listDeployedContractsByAddress = async (address: string): Promise<D
     return [];
   }
 };
+
+export const addWaitlist = async (
+  lens_username: string,
+  email: string,
+  wallet_address: string
+) => {
+  const response = await fetch("/api/addWaitlist", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      lens_username: lens_username,
+      email: email,
+      wallet_address: wallet_address,
+    }),
+  });
+
+  const data = await response.json();
+  if (response.ok) {
+    console.log("Waitlist added:", data.message);
+  } else {
+    console.error("Error:", data.error);
+  }
+  return data;
+}

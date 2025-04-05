@@ -1,6 +1,6 @@
-import { evmAddress } from "@lens-protocol/client";
-import { currentSession, fetchAccountsAvailable, fetchAuthenticatedSessions } from "@lens-protocol/client/actions";
-import { lensPublicClient } from "./client/lensProtocolClient";
+import { Account, evmAddress } from "@lens-protocol/client";
+import { currentSession, fetchAccounts, fetchAccountsAvailable, fetchAuthenticatedSessions } from "@lens-protocol/client/actions";
+import { lensPublicClient, lensPublicMainnetClient } from "./client/lensProtocolClient";
 import { gql } from '@apollo/client';
 import { useMutation } from '@apollo/client';
 import { signMessage } from '@wagmi/core'
@@ -101,16 +101,15 @@ if (resumed.isErr()) {
   return null;
 }
 const sessionClient = resumed.value;
-const result = await sessionClient.getAuthenticatedUser();
-  //const result = await currentSession(sessionClient); 
+const result = await currentSession(sessionClient);
 
-  if (result.isErr()) {
-    return console.error(result.error);
-  }
-  
-  // AuthenticatedSession: { authenticationId: UUID, app: EvmAddress, ... }
-  const session = result.value;
-  return session;
+if (result.isErr()) {
+  return console.error(result.error);
+}
+
+// AuthenticatedSession: { authenticationId: UUID, app: EvmAddress, ... }
+const session = result.value;
+return session;
 }
 
 const REVOKE_AUTHENTICATION = gql`
@@ -163,4 +162,23 @@ const result = await sessionClient.mutation(REVOKE_AUTHENTICATION, {
 });*/
 
 console.log("logout result: ", result);
+}
+
+export async function searchLensAccounts(search: string) {
+  const result = await fetchAccounts(lensPublicMainnetClient, {
+    filter: {
+      searchBy: {
+        localNameQuery: search,
+      },
+    },
+  });
+  
+  if (result.isErr()) {
+    return console.error(result.error);
+  }
+  
+  // items: Array<Account>
+  const { items, pageInfo } = result.value;
+
+  return items as Account[];
 }

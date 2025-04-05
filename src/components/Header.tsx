@@ -22,12 +22,13 @@ export default function Header() {
 
   const handleLogout = async () => {
     await logout();
-    window.location.reload(); // ✅ Refresh page on logout
+   // window.location.reload(); // ✅ Refresh page on logout
   };
 
   useEffect(() => {
     const manageSession = async () => {
       const _currentSession = await getCurrentSession();
+      console.log('Current session:', _currentSession);
       setCurrentSession(_currentSession);
     }
     manageSession();
