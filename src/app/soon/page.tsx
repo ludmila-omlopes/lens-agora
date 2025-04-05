@@ -164,7 +164,7 @@ export default function LaunchingSoonPage() {
               <div className="absolute inset-0 bg-gradient-to-r from-[#7F71D9]/80 to-transparent flex flex-col justify-center p-8">
                 <h1 className="text-5xl md:text-6xl font-black mb-4 text-white drop-shadow-md">Lens Agora</h1>
                 <p className="text-xl md:text-2xl font-bold text-white drop-shadow-md max-w-md">
-                  The premier NFT marketplace launching soon
+                  The Lens Social Marketplace is launching soon
                 </p>
               </div>
             </div>
