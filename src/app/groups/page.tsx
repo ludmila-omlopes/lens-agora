@@ -1,5 +1,6 @@
 import { Metadata } from 'next'
 import GroupsComingSoon from '@/components/GroupsComingSoon'
+import { notFound, redirect } from 'next/navigation';
 
 export const metadata: Metadata = {
   title: 'Groups - Coming Soon | NFT Marketplace',
@@ -7,6 +8,9 @@ export const metadata: Metadata = {
 }
 
 export default function GroupsPage() {
+  if (process.env.NODE_ENV === "production") {
+    return redirect("/"); 
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 dark:from-gray-900 dark:via-purple-900 dark:to-violet-800">
       <div className="container mx-auto py-16 px-4">
