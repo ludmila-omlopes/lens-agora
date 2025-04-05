@@ -1,5 +1,6 @@
 import ExploreNFTs from "@/components/ExploreNFTs";
 import { getAllValidListingsWithProfile } from "../../../lib/marketplacev3";
+import { notFound, redirect } from "next/navigation";
 
 export const metadata = {
   title: "Explore NFTs | Lens Agora Marketplace",
@@ -7,6 +8,9 @@ export const metadata = {
 };
 
 export default async function ExplorePage() {
+  if (process.env.NODE_ENV === "production") {
+    return redirect("/"); 
+  }
   const listings = await getAllValidListingsWithProfile();
 
   return (
