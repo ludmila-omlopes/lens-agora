@@ -2,9 +2,12 @@ import { revalidatePath } from "next/cache";
 import { getCurrentCollection, listNFTs } from "../../../../lib/nfts";
 import CollectionDetails from "./collectionClient";
 import CollectionClient from "./collectionClient";
+import { notFound, redirect } from "next/navigation";
 
 export default async function CollectionPage({ params }: { params: { address: string, id: string } }) {
-
+  if (process.env.NODE_ENV === "production") {
+    return redirect("/");
+  }
  const collection = await getCurrentCollection({ contractAdd: params.address });
  const nfts = await listNFTs({ contractAdd: params.address, start: 0, count: 10 });
  revalidatePath(`/items/${params.address}`);
