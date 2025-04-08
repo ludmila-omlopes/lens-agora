@@ -296,7 +296,19 @@ export default function LaunchingSoonPage() {
                     <p className="mt-1 text-sm text-gray-600">
                       {selectedUser
                         ? "We'll notify you when Lens Agora launches."
-                        : "Search for your existing username or enter a new one to reserve."}
+                        : (
+                          <>
+                            Don't have an account? No worries,{" "}
+                            <a
+                              href="https://onboarding.lens.xyz/"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-500 underline"
+                            >
+                              create one for free
+                            </a>.
+                          </>
+                        )}
                     </p>
                   </div>
 
