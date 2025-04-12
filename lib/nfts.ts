@@ -146,17 +146,18 @@ export async function listNFTs({ contractAdd, start, count }: { contractAdd: str
 export async function createNFTContract(account: any, contractType: string, name: string, symbol: string, description: string, image?: File, supply?: bigint) { 
   
   var contractAddress = "";
-  console.log("contractType: ", contractType);
 
   switch(contractType) {
-    case "NFTCollection":
+    case "unique":
       console.log("NFTCollection");
       contractAddress = await createSingleEditionContract(account, name, description, symbol, image);
       break;
-    case "Edition":
+    case "multi-edition":
       console.log("Edition");
       contractAddress = await createMultieditionContract(account, name, description, symbol, image);
       break;
+    default:
+      throw new Error("Invalid contract type chosen. Please select a valid type.");
   }
 
   if(contractAddress.length > 0) {
@@ -348,12 +349,10 @@ export async function isNFTOwnedByAddress(address: string, nft: NFT, collectionA
   }
   if(nft && nft.type === "ERC721") {
     const ownedNFTs = await getERC721OwnedByAddress(address); //nao pega se tiver listado em auction
-    console.log("ownedNFTs ERC721: ", ownedNFTs);
-    return ownedNFTs.data.some((ownedNFT: { tokenId: string; tokenAddress: string; }) => ownedNFT.tokenId === nft.id.toString() && getAddress(ownedNFT.tokenAddress) === getAddress(collectionAddress));
+    return ownedNFTs.data.some((ownedNFT: { token_id: string; token_address: string; }) => ownedNFT.token_id === Number(nft.id).toString() && getAddress(ownedNFT.token_address) === getAddress(collectionAddress));
   }
   else if(nft && nft.type === "ERC1155") { //como 1155 são multieditions, um único id tem vários owners
     const ownedNFTs = await getERC1155OwnedByAddress(address);
-    console.log("ownedNFTs ERC1155: ", ownedNFTs);
     return ownedNFTs.data.some((ownedNFT: { tokenId: string; tokenAddress: string; }) => ownedNFT.tokenId === nft.id.toString() && getAddress(ownedNFT.tokenAddress) === getAddress(collectionAddress)); 
   }
   return false;
@@ -404,7 +403,6 @@ async function createMultieditionContract(account: any, name: string, descriptio
       royaltyRecipient: undefined,
       royaltyBps: undefined,
       trustedForwarders: undefined,
-
     }});
     
     console.log("contractAddress: ", contractAddress);
@@ -429,6 +427,7 @@ async function createMultieditionContract(account: any, name: string, descriptio
 }
 
 async function createSingleEditionContract(account: any, name: string, description: string, symbol: string, image?: File) {
+  //todo: passar as fees
   const contractAddress = await deployERC721Contract({
     chain: lensTestnetChain,
     client: thirdwebClient,

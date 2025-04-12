@@ -179,6 +179,7 @@ export default function NFTDetails( {nft, marketplaceInfo } : {nft: NFT, marketp
            const checkOwnership = async () => {
              if (account && account.address) {
                const userIsOwner = await isNFTOwnedByAddress(account.address, nft, marketplaceInfo.collection.address);
+               console.log("User is owner:", userIsOwner);
                setIsOwner(userIsOwner);
              }
            };

@@ -1,9 +1,12 @@
 import Dashboard from "@/components/Dashboard"
 import { getProfiles } from "thirdweb/wallets";
 import { thirdwebClient } from "../../../lib/client/thirdwebClient";
+import { notFound, redirect } from "next/navigation";
 
 export default function DashboardPage() {
-
+  if (process.env.NODE_ENV === "production") {
+    return redirect("/"); 
+  }
   //const deployedContracts = listDeployedContractsByAddress({ address: '0x1234...5678' })
     
   return (

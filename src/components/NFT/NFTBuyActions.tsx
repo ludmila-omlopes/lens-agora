@@ -39,6 +39,10 @@ export const NFTBuyActions: React.FC<{
 
   const { mutateAsync } = useSendAndConfirmTransaction();
 
+  const isAuctionCreator = marketplaceInfo.auction?.creatorAddress === userAddress;
+  const isListingCreator = marketplaceInfo.listing?.creatorAddress === userAddress;
+
+
   const handleCancelAuction = async () => {
     try {
       await cancelAuction(thirdwebAccount, marketplaceInfo.auction.id);
@@ -95,13 +99,13 @@ export const NFTBuyActions: React.FC<{
         </div>
       )}
 
-      {marketplaceInfo?.listing?.status !== "CANCELLED" && marketplaceInfo.listing?.creatorAddress === userAddress && isConnected && (
+      {marketplaceInfo?.listing?.status !== "CANCELLED" && isListingCreator && isConnected && (
         <button onClick={handleCancelListing} className="flex-1 bg-pink-500 hover:bg-pink-600">
           CANCEL LISTING
         </button>
       )}
 
-      {marketplaceInfo?.auction?.status !== "CANCELLED" && marketplaceInfo.auction?.creatorAddress === userAddress && isConnected && (
+      {marketplaceInfo?.auction?.status !== "CANCELLED" && isAuctionCreator && isConnected && (
         <button onClick={handleCancelAuction} className="w-full bg-gradient-to-r from-[#8EF5F5] to-[#7EF2F2] text-black font-black py-3 px-4 rounded-md border-2 border-black transform transition-transform duration-200 hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-none">
           CANCEL AUCTION
         </button>
@@ -131,7 +135,7 @@ export const NFTBuyActions: React.FC<{
 
 
 
-      {!isOwner && marketplaceInfo?.auction?.status === "ACTIVE" && (
+      {!isOwner && !isAuctionCreator && marketplaceInfo?.auction?.status === "ACTIVE" && (
         <div className="grid grid-cols-1 gap-4">
           <button onClick={() => setIsBidDialogOpen(true)} className="bg-gradient-to-r from-[#8EF5F5] to-[#7EF2F2] text-black font-black py-3 px-4 rounded-md border-2 border-black">
             BID IN AUCTION

@@ -1,8 +1,11 @@
 import ContractDetails from "@/components/ContractDetails"
 import { getCurrentCollection } from "../../../../lib/nfts";
+import { notFound, redirect } from "next/navigation";
 
 export default async function ContractDetailsPage({ params }: { params: { address: string } }) {
-
+  if (process.env.NODE_ENV === "production") {
+    return redirect("/"); 
+  }
 const collection = await getCurrentCollection({ contractAdd: params.address });
 
   return (

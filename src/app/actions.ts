@@ -7,6 +7,9 @@ import { verifyContract } from "thirdweb/contract";
 import { fetchAccountsAvailable } from "@lens-protocol/client/actions";
 import { evmAddress } from "@lens-protocol/client";
 import { loginAccountless } from "../../lib/lensProtocolUtils";
+import { createNFTContract } from "../../lib/nfts";
+import { revalidatePath } from "next/cache";
+import { Account } from "thirdweb/wallets";
 
 export async function login(account: any) {
   const lensaccounts = await listAvailableLensAccounts(account);
@@ -50,3 +53,5 @@ export async function listAvailableLensAccounts(account: any)
   });
   return result;
 }
+
+//todo: revisar essa página. São server actions mesmo?
