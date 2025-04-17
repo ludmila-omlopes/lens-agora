@@ -1,34 +1,41 @@
-"use client"
+  "use client"
 
 import type React from "react"
-
 import { useState, useRef } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Wallet, User, Check, AlertCircle, ArrowRight, X, Globe, ImageIcon } from "lucide-react"
+import { useAccount } from "wagmi"
+import { ConnectKitButton } from "connectkit"
+import { useLensSession } from "@/contexts/LensSessionContext"
+import { useThirdwebWallet } from "@/hooks/useThirdwebWallet"
+import { useActiveAccount } from "thirdweb/react"
+import { uploadMediaToGrove, uploadMetadataToGrove } from "../../../lib/lensNetwork"
+import { MetadataAttributeType, account as accountMetadata } from "@lens-protocol/metadata";
+import { createAccountWithUsername } from "@lens-protocol/client/actions"
+import { uri } from "@lens-protocol/client"
 
 export default function CreateAccountPage() {
-  // Form state
+  const appAddress = "0xC75A89145d765c396fd75CbD16380Eb184Bd2ca7" // testnet
+  const { loginAsOnboardingUser, sessionClient } = useLensSession();
+  useThirdwebWallet();
+  const account = useActiveAccount();
+
   const [formData, setFormData] = useState({
     username: "",
     displayName: "",
     bio: "",
     website: "",
-  })
+  });
 
-  // Avatar state
-  const [avatar, setAvatar] = useState<string | null>(null)
-  const avatarInputRef = useRef<HTMLInputElement>(null)
+  const [avatar, setAvatar] = useState<File | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
-  // Cover image state
-  const [coverImage, setCoverImage] = useState<string | null>(null)
-  const coverInputRef = useRef<HTMLInputElement>(null)
+  const [coverImage, setCoverImage] = useState<string | null>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
-  // Wallet connection state
-  const [walletConnected, setWalletConnected] = useState(false)
-  const [walletAddress, setWalletAddress] = useState("")
+  const { address, isConnected: isWalletConnected } = useAccount();
 
-  // Form validation state
   const [errors, setErrors] = useState<{
     username?: string
     displayName?: string
@@ -37,172 +44,123 @@ export default function CreateAccountPage() {
     coverImage?: string
     wallet?: string
     website?: string
-  }>({})
+  }>({});
 
-  // Handle input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-
-    // Clear error when user types
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name as keyof typeof errors]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }))
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
-  }
+  };
 
-  // Handle avatar upload
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Check file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setErrors((prev) => ({ ...prev, avatar: "Image must be less than 5MB" }))
-      return
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 7 * 1024 * 1024) {
+      setErrors((prev) => ({ ...prev, avatar: "Image must be less than 7MB" }));
+      return;
     }
-
-    // Check file type
     if (!file.type.startsWith("image/")) {
-      setErrors((prev) => ({ ...prev, avatar: "File must be an image" }))
-      return
+      setErrors((prev) => ({ ...prev, avatar: "File must be an image" }));
+      return;
     }
+    setAvatar(file);
+    setErrors((prev) => ({ ...prev, avatar: undefined }));
+  };
 
-    // Create object URL for preview
-    const objectUrl = URL.createObjectURL(file)
-    setAvatar(objectUrl)
-    setErrors((prev) => ({ ...prev, avatar: undefined }))
-
-    // Clean up object URL when component unmounts
-    return () => URL.revokeObjectURL(objectUrl)
-  }
-
-  // Handle cover image upload
   const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Check file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      setErrors((prev) => ({ ...prev, coverImage: "Image must be less than 10MB" }))
-      return
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 7 * 1024 * 1024) {
+      setErrors((prev) => ({ ...prev, coverImage: "Image must be less than 7MB" }));
+      return;
     }
-
-    // Check file type
     if (!file.type.startsWith("image/")) {
-      setErrors((prev) => ({ ...prev, coverImage: "File must be an image" }))
-      return
+      setErrors((prev) => ({ ...prev, coverImage: "File must be an image" }));
+      return;
     }
+    const objectUrl = URL.createObjectURL(file);
+    setCoverImage(objectUrl);
+    setErrors((prev) => ({ ...prev, coverImage: undefined }));
+    return () => URL.revokeObjectURL(objectUrl);
+  };
 
-    // Create object URL for preview
-    const objectUrl = URL.createObjectURL(file)
-    setCoverImage(objectUrl)
-    setErrors((prev) => ({ ...prev, coverImage: undefined }))
-
-    // Clean up object URL when component unmounts
-    return () => URL.revokeObjectURL(objectUrl)
-  }
-
-  // Handle wallet connection
-  const connectWallet = async () => {
-    try {
-      // Simulate wallet connection
-      // In a real app, you would use a library like ethers.js or web3.js
-      setTimeout(() => {
-        const mockAddress = "0x" + Math.random().toString(16).slice(2, 12) + "..."
-        setWalletAddress(mockAddress)
-        setWalletConnected(true)
-        setErrors((prev) => ({ ...prev, wallet: undefined }))
-      }, 1000)
-    } catch (error) {
-      setErrors((prev) => ({ ...prev, wallet: "Failed to connect wallet" }))
-    }
-  }
-
-  // Disconnect wallet
-  const disconnectWallet = () => {
-    setWalletConnected(false)
-    setWalletAddress("")
-  }
-
-  // Remove avatar
   const removeAvatar = () => {
-    setAvatar(null)
-    if (avatarInputRef.current) {
-      avatarInputRef.current.value = ""
-    }
-  }
+    setAvatar(null);
+    if (avatarInputRef.current) avatarInputRef.current.value = "";
+  };
 
-  // Remove cover image
   const removeCover = () => {
-    setCoverImage(null)
-    if (coverInputRef.current) {
-      coverInputRef.current.value = ""
-    }
-  }
+    setCoverImage(null);
+    if (coverInputRef.current) coverInputRef.current.value = "";
+  };
 
-  // Validate URL
   const isValidUrl = (url: string) => {
-    if (!url) return true // Empty is valid (not required)
+    if (!url) return true;
     try {
-      new URL(url)
-      return true
+      new URL(url);
+      return true;
     } catch (e) {
-      return false
+      return false;
     }
-  }
+  };
 
-  // Form validation
   const validateForm = () => {
-    const newErrors: typeof errors = {}
+    const newErrors: typeof errors = {};
+    if (!isWalletConnected) newErrors.wallet = "Please connect your wallet";
+    if (!avatar) newErrors.avatar = "Please upload an avatar";
+    if (!formData.username.trim()) newErrors.username = "Username is required";
+    else if (formData.username.length < 3) newErrors.username = "Username must be at least 3 characters";
+    if (!formData.displayName.trim()) newErrors.displayName = "Display name is required";
+    if (formData.bio.length > 500) newErrors.bio = "Bio must be less than 500 characters";
+    if (formData.website && !isValidUrl(formData.website)) newErrors.website = "Please enter a valid URL (include http:// or https://)";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-    if (!walletConnected) {
-      newErrors.wallet = "Please connect your wallet"
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!address || !isWalletConnected) return;
+    if (!validateForm()) return;
+
+    try {
+      await loginAsOnboardingUser({ appAddress, walletAddress: address });
+      console.log("Logged in as onboarding user", { appAddress, walletAddress: address });
+      const avataURI = await uploadMediaToGrove(avatar!);
+      var coverURI;
+      if (coverInputRef.current?.files?.[0]) {
+        coverURI = await uploadMediaToGrove(coverInputRef.current.files[0]);
+      }
+
+      const metadata = accountMetadata({
+        name: formData.displayName,
+        bio: formData.bio,
+        picture: avataURI.uri,
+        coverPicture: coverURI?.uri,
+        //todo: colocar atributos
+      });
+
+      const metadataURI = await uploadMetadataToGrove(metadata);
+
+      const result = await createAccountWithUsername(sessionClient!, {
+        username: { localName: formData.username },
+        metadataUri: uri(metadataURI.uri),
+      });
+
+      console.log("Account created successfully", result);
+
+    } catch (error) {
+      console.error("Failed to create Account", error);
+      setErrors((prev) => ({ ...prev, wallet: "Failed to authenticate with Lens" }));
     }
+  };
 
-    if (!avatar) {
-      newErrors.avatar = "Please upload an avatar"
-    }
-
-    if (!formData.username.trim()) {
-      newErrors.username = "Username is required"
-    } else if (formData.username.length < 3) {
-      newErrors.username = "Username must be at least 3 characters"
-    }
-
-    if (!formData.displayName.trim()) {
-      newErrors.displayName = "Display name is required"
-    }
-
-    if (formData.bio.length > 500) {
-      newErrors.bio = "Bio must be less than 500 characters"
-    }
-
-    if (formData.website && !isValidUrl(formData.website)) {
-      newErrors.website = "Please enter a valid URL (include http:// or https://)"
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (validateForm()) {
-      // Submit form data
-      console.log("Form submitted:", { ...formData, avatar, coverImage, walletAddress })
-      // In a real app, you would send this data to your backend
-      alert("Account created successfully!")
-    }
-  }
-
-  // Format website URL for display
   const formatWebsiteUrl = (url: string) => {
-    if (!url) return ""
-    return url.replace(/^https?:\/\//, "").replace(/\/$/, "")
-  }
-
+    if (!url) return "";
+    return url.replace(/^https?:\/\//, "").replace(/\/$/, "");
+  };
+  
   return (
     <div className="container mx-auto py-12 px-4 bg-gradient-to-b from-[#F7F6FC] to-[#F0EFFA]">
       <div className="max-w-4xl mx-auto">
@@ -219,32 +177,7 @@ export default function CreateAccountPage() {
                   <Wallet className="mr-2 h-5 w-5" /> Connect Wallet
                 </h2>
 
-                {walletConnected ? (
-                  <div className="flex items-center justify-between bg-white p-4 rounded-md border-2 border-black">
-                    <div className="flex items-center">
-                      <div className="bg-[#8F83E0] p-2 rounded-md border-2 border-black mr-3">
-                        <Check className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-bold">Wallet Connected</p>
-                        <p className="text-sm text-gray-600">{walletAddress}</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={disconnectWallet}
-                      className="p-2 rounded-md border-2 border-black bg-white hover:bg-gray-100"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={connectWallet}
-                    className="w-full bg-gradient-to-r from-[#8F83E0] to-[#7F71D9] text-white font-black py-3 px-4 rounded-md border-2 border-black transform transition-transform duration-200 hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-none"
-                  >
-                    CONNECT WALLET
-                  </button>
-                )}
+                {<ConnectKitButton />}
 
                 {errors.wallet && (
                   <div className="mt-2 flex items-center text-red-500 text-sm">
@@ -267,7 +200,7 @@ export default function CreateAccountPage() {
                   <div className="relative mb-4">
                     <div className="h-32 w-32 rounded-full overflow-hidden relative border-4 border-black bg-white">
                       {avatar ? (
-                        <Image src={avatar || "/placeholder.svg"} alt="Avatar preview" fill className="object-cover" />
+                        <img src={avatar ? URL.createObjectURL(avatar) : "/placeholder.svg"} alt="Avatar preview" className="object-cover" />
                       ) : (
                         <div className="flex items-center justify-center h-full bg-gray-100">
                           <User className="h-16 w-16 text-gray-400" />
@@ -321,10 +254,9 @@ export default function CreateAccountPage() {
                   <div className="relative mb-4 w-full">
                     <div className="w-full h-40 overflow-hidden relative border-4 border-black bg-white rounded-md">
                       {coverImage ? (
-                        <Image
+                        <img
                           src={coverImage || "/placeholder.svg"}
                           alt="Cover image preview"
-                          fill
                           className="object-cover"
                         />
                       ) : (
@@ -509,7 +441,7 @@ export default function CreateAccountPage() {
                 {/* Avatar - positioned to overlap the cover image */}
                 <div className="absolute -top-16 left-6 h-24 w-24 rounded-full overflow-hidden border-4 border-black bg-white">
                   {avatar ? (
-                    <Image src={avatar || "/placeholder.svg"} alt="Avatar preview" fill className="object-cover" />
+                    <Image src={avatar ? URL.createObjectURL(avatar) : "/placeholder.svg"} alt="Avatar preview" fill className="object-cover" />
                   ) : (
                     <div className="flex items-center justify-center h-full bg-gray-100">
                       <User className="h-12 w-12 text-gray-400" />
@@ -522,10 +454,10 @@ export default function CreateAccountPage() {
                   <div className="flex flex-wrap items-center gap-3 mb-2">
                     <h3 className="text-2xl font-black">{formData.displayName || "Your Display Name"}</h3>
 
-                    {walletConnected && (
+                    {isWalletConnected && (
                       <div className="inline-flex items-center bg-[#D7D3F5] px-3 py-1 rounded-md border-2 border-black text-sm font-bold">
                         <Wallet className="h-4 w-4 mr-1" />
-                        {walletAddress}
+                        {address}
                       </div>
                     )}
                   </div>

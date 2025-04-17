@@ -13,27 +13,15 @@ import ProfileSelectDialog from '../../components/ProfileSelectDialog'
 import { useEffect, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { RetroButton } from './customUI/RetroButton'
+import { useLensSession } from '@/contexts/LensSessionContext'
 
 export default function Header() {
   const { theme, toggleTheme } = useTheme()
-  const { address, isConnecting, isDisconnected, isConnected } = useAccount();
+  const { address, isConnecting, isDisconnected, isConnected: isWalletConnected } = useAccount();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentSession, setCurrentSession] = useState<any>(null);
 
-  const handleLogout = async () => {
-    await logout();
-   // window.location.reload(); // ✅ Refresh page on logout
-  };
-
-  useEffect(() => {
-    const manageSession = async () => {
-      const _currentSession = await getCurrentSession();
-      console.log('Current session:', _currentSession);
-      setCurrentSession(_currentSession);
-    }
-    manageSession();
-  }
-  , [isConnected]);
+  const { sessionClient, session, loading, logout, login } = useLensSession();
 
   return (
     <header className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white py-4 transition-colors duration-300">
@@ -61,16 +49,24 @@ export default function Header() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           </div>
           
-          {(isConnected && address && !currentSession) ? (
+{
+  (isWalletConnected && address && loading) && (
+    <div className="flex items-center space-x-2">
+      <span className="text-sm text-gray-500">Loading...</span>
+    </div>
+  )
+}
+
+          {
+          (isWalletConnected && address && ! loading && !session) ? (
               <>
               <ProfileSelectDialog accountAddress={address} open={isDialogOpen} onOpenChange={setIsDialogOpen} />
               </>
-            ) : (currentSession) ? (
-              <RetroButton onClick={handleLogout}>
+            ) : (session && !loading) ? (
+              <RetroButton onClick={logout}>
               Log Out
-            </RetroButton>) : <></>}
-             
-           { /*<ConnectButton client={thirdwebClient} /> */ }
+            </RetroButton>) : <></>
+            }
            {<ConnectKitButton />}
           {/* <Button variant="ghost" onClick={toggleTheme}>
             {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}

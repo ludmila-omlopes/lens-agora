@@ -6,7 +6,7 @@ import { useMutation } from '@apollo/client';
 import { signMessage } from '@wagmi/core'
 import { config } from "@/app/Web3Provider";
 
-const appAddress = "0xaC19aa2402b3AC3f9Fe471D4783EC68595432465";
+const appAddress = "0xC75A89145d765c396fd75CbD16380Eb184Bd2ca7";
 
 export async function listAvailableLensAccounts(accountAddress: string)
 {
@@ -98,16 +98,17 @@ export async function getCurrentSession() {
   const resumed = await lensPublicClient.resumeSession();
 
 if (resumed.isErr()) {
-  return null;
+  return console.error(resumed.error);
 }
 const sessionClient = resumed.value;
+console.log("sessionClient: ", sessionClient);
+
 const result = await currentSession(sessionClient);
 
 if (result.isErr()) {
   return console.error(result.error);
 }
 
-// AuthenticatedSession: { authenticationId: UUID, app: EvmAddress, ... }
 const session = result.value;
 return session;
 }
@@ -147,20 +148,6 @@ if (resumed.isErr()) {
 const sessionClient = resumed.value;
 console.log("sessionClient: ", sessionClient);
 const result = await sessionClient.logout();
-/*const userResult = await sessionClient.getAuthenticatedUser();
-if (userResult.isErr()) {
-  return console.error(userResult.error);
-}
-
-const authenticatedUser = userResult.value;
-console.log("authenticatedUser: ", authenticatedUser);
-
-const result = await sessionClient.mutation(REVOKE_AUTHENTICATION, {
-  request: {
-    authenticationId: authenticatedUser.authenticationId,
-  },
-});*/
-
 console.log("logout result: ", result);
 }
 
