@@ -16,6 +16,15 @@ import { isNFTOwnedByAddress } from "../../../../../lib/nfts"
 import { NFTBuyActions } from "@/components/NFT/NFTBuyActions"
 import { marketplaceContractAddress } from "../../../../../lib/marketplacev3"
 import NFTOffersSection from "@/components/NFT/NFTOffersSection"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { image, MediaImageMimeType, MetadataLicenseType } from "@lens-protocol/metadata"
+import { uploadMetadataToGrove } from "../../../../../lib/lensNetwork"
+import { post } from "@lens-protocol/client/actions"
+import { useLensSession } from "@/contexts/LensSessionContext"
+import { uri } from "@lens-protocol/client"
+import { NFTCommentsSection } from "@/components/NFT/NFTCommentsSection"
 
 export default function NFTDetails( {nft, marketplaceInfo } : {nft: NFT, marketplaceInfo: MarketplaceInfo} ) {
   const [isLiked, setIsLiked] = useState(false)
@@ -23,6 +32,9 @@ export default function NFTDetails( {nft, marketplaceInfo } : {nft: NFT, marketp
   const buttonsRef = useRef<HTMLDivElement | null>(null)
   const imageContainerRef = useRef<HTMLDivElement | null>(null)
   const [isMobile, setIsMobile] = useState(false)
+  const [isShareOpen, setIsShareOpen] = useState(false)
+  const [shareMessage, setShareMessage] = useState("")
+  const { sessionClient } = useLensSession();
 
   useEffect(() => {
     const checkIfMobile = () => {
@@ -185,7 +197,39 @@ export default function NFTDetails( {nft, marketplaceInfo } : {nft: NFT, marketp
            };
            checkOwnership();
          }, [account, nft]);
- 
+
+const handleShare = async () => {
+  //todo: colocar um loading.
+  const tag  = (marketplaceInfo.collection.address+nft.id.toString()).toLowerCase();
+  const metadata = image({
+    tags: [tag],
+    title: nft.metadata.name,
+    image: {
+      item: resolvedImageurl,
+      type: MediaImageMimeType.JPEG,
+    },
+    content: shareMessage,
+    nft: {
+      name: nft.metadata.name,
+      description: nft.metadata.description,
+      external_url: `https://localhost:3000/items/${marketplaceInfo.collection.address}/${nft.id}`,
+      image: resolvedImageurl,
+      //todo: colocar atributos
+    },
+  });
+    console.log("Metadata to post:", metadata);
+
+    const metadataURI = uploadMetadataToGrove(metadata);
+    console.log("Metadata URI:", metadataURI);
+    const result = await post(sessionClient!, { contentUri: uri((await metadataURI).uri) });
+    if (result.isErr()) {
+      console.error("Error posting to Lens:", result.error);
+      return;
+    }
+    alert("Post published successfully!");
+    setIsShareOpen(false);
+  }
+
  return (
     <div className="container mx-auto py-12 px-4 bg-gradient-to-b from-[#F7F6FC] to-[#F0EFFA]">
       <div className="relative grid md:grid-cols-2 gap-10">
@@ -199,7 +243,7 @@ export default function NFTDetails( {nft, marketplaceInfo } : {nft: NFT, marketp
             <span className="sr-only">Like</span>
           </button>
           <button className="p-3 rounded-md border-2 border-black bg-white">
-            <Share2 className="h-5 w-5" />
+            <Share2 onClick={() => setIsShareOpen(true)} className="h-5 w-5" />
             <span className="sr-only">Share</span>
           </button>
           <button className="p-3 rounded-md border-2 border-black bg-white">
@@ -207,6 +251,23 @@ export default function NFTDetails( {nft, marketplaceInfo } : {nft: NFT, marketp
             <span className="sr-only">Report</span>
           </button>
         </div>
+
+        <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Share this NFT</DialogTitle>
+          </DialogHeader>
+          <Input
+            type="text"
+            placeholder="Write your thoughts..."
+            value={shareMessage}
+            onChange={(e) => setShareMessage(e.target.value)}
+          />
+          <DialogFooter>
+            <Button onClick={handleShare}>Share</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
         {/* Left column - NFT Image with sticky behavior only on desktop */}
         <div
@@ -288,10 +349,9 @@ export default function NFTDetails( {nft, marketplaceInfo } : {nft: NFT, marketp
               <p className="text-3xl font-black">{Number(marketplaceInfo.listing.pricePerToken) / 10 ** 18} GHO</p>
               <div className="flex items-center gap-2">
                 <div className="h-8 w-8 rounded-full overflow-hidden relative border-2 border-black">
-                  <Image
-                    src={"/placeholder.svg"}
+                  <img
+                    src={"/placeholder.png"}
                     alt={nft.owner!}
-                    fill
                     className="object-cover"
                   />
                 </div>
@@ -428,59 +488,10 @@ export default function NFTDetails( {nft, marketplaceInfo } : {nft: NFT, marketp
             </div>
 
             {/* Comments section */}
-            <div className="bg-gradient-to-br from-white to-[#F7E5F2] rounded-lg border-4 border-black p-6">
-              <h2 className="text-xl font-black mb-4 flex items-center">
-                <MessageCircle className="mr-2 h-5 w-5" /> Comments
-              </h2>
-              <div className="space-y-4">
-                {/* Show only first 2 comments */}
-                {nftSocialInfo.comments.slice(0, 2).map((comment, index) => (
-                  <div key={index} className="p-3 border-2 border-black rounded-md bg-white">
-                    <div className="flex items-center mb-2">
-                      <div className="h-6 w-6 rounded-full overflow-hidden relative border-2 border-black mr-2">
-                        <img
-                          src={comment.user.avatar || "/placeholder.svg"}
-                          alt={comment.user.name}
-                          className="object-cover"
-                        />
-                      </div>
-                      <Link href={comment.user.link} className="font-bold text-sm hover:underline">
-                        {comment.user.name}
-                      </Link>
-                      <div className="text-xs text-gray-600 ml-auto">{comment.time}</div>
-                    </div>
-                    <p className="text-sm">{comment.text}</p>
-                  </div>
-                ))}
-
-                {/* See more comments link */}
-                {nftSocialInfo.comments.length > 2 && (
-                  <Link
-                    href="#"
-                    className="block text-center py-2 border-2 border-black rounded-md font-bold text-sm bg-white hover:bg-[#F7F6FC]"
-                  >
-                    See {nftSocialInfo.comments.length - 2} More Comments
-                  </Link>
-                )}
-
-                {/* Comment input */}
-                <div className="flex gap-2 mt-4">
-                  <div className="h-8 w-8 rounded-full overflow-hidden relative border-2 border-black flex-shrink-0">
-                    <img src="/placeholder.svg?height=40&width=40" alt="Your avatar" className="object-cover" />
-                  </div>
-                  <div className="flex-1 relative">
-                    <input
-                      type="text"
-                      placeholder="Add a comment..."
-                      className="w-full p-2 text-sm border-2 border-black rounded-md font-bold bg-white"
-                    />
-                    <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#7F71D9] text-white font-bold py-1 px-2 text-xs rounded-md border-1 border-black">
-                      Post
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <NFTCommentsSection 
+              nftId={nft.id.toString()} 
+              collectionAddress={marketplaceInfo.collection.address} 
+            />
           </div>
         </div>
       </div>
