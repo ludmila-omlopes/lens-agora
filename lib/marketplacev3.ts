@@ -146,6 +146,7 @@ async function getListingById(listingId: bigint) {
 }
 
 export async function getAllValidListingsWithProfile() {
+  //todo: trocar pro proile do Lens
   const listings = await getAllValidListings({ contract });
   const auctions = await getAllValidAuctions({ contract });
   const allListingsAndAuctions = [...listings, ...auctions];

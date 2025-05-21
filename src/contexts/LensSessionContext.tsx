@@ -2,10 +2,12 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { lensPublicClient } from "../../lib/client/lensProtocolClient";
-import { currentSession } from "@lens-protocol/client/actions";
-import type { SessionClient, AuthenticatedSession } from "@lens-protocol/client";
+import { currentSession, fetchAccount } from "@lens-protocol/client/actions";
+import type { SessionClient, AuthenticatedSession, Account, AuthenticatedUser } from "@lens-protocol/client";
+import { Role } from "@lens-protocol/client";
 import { signMessage } from '@wagmi/core'
 import { config } from "@/app/Web3Provider";
+import { account } from "@lens-protocol/metadata";
 
 type LensSessionContextType = {
   session: AuthenticatedSession | null;
@@ -18,6 +20,7 @@ type LensSessionContextType = {
     appAddress: string;
     walletAddress: string;
   }) => Promise<void>;
+  getLoggedAccount: () => Promise<Account | null>;
 };
 
 const LensSessionContext = createContext<LensSessionContextType | undefined>(undefined);
@@ -26,6 +29,7 @@ export const LensSessionProvider = ({ children }: { children: React.ReactNode })
   const [sessionClient, setSessionClient] = useState<SessionClient | null>(null);
   const [session, setSession] = useState<AuthenticatedSession | null>(null);
   const [loading, setLoading] = useState(true);
+  
 
   const resume = useCallback(async () => {
     const resumed = await lensPublicClient.resumeSession();
@@ -111,6 +115,39 @@ export const LensSessionProvider = ({ children }: { children: React.ReactNode })
     },
     []
   );
+
+  const getLoggedAccount = useCallback(async (): Promise<Account | null> => {
+    if (!sessionClient || !sessionClient.isSessionClient()) 
+      return null;
+    try {
+      const result = sessionClient.getAuthenticatedUser();
+      if (result.isErr()) {
+        console.error("Failed to get logged user:", result.error);
+        return null;
+      }
+      const user = result.value as AuthenticatedUser;
+      if (!user || user.role === Role.OnboardingUser || user.role === Role.Builder) {
+        console.error("User is not authenticated or is an onboarding user:", user);
+        return null;
+      }
+      
+      const result2 = await fetchAccount(lensPublicClient, {
+        address: user.address,
+      });
+
+      if (result2.isErr()) {
+        console.error("Failed to fetch logged account:", result2.error);
+        return null;  
+      };
+
+      const account = result2.value as Account;
+
+      return account;
+    } catch (error) {
+      console.error("Failed to fetch logged account:", error);
+      return null;
+    }
+  }, [sessionClient]);
   
 
   useEffect(() => {
@@ -134,6 +171,7 @@ export const LensSessionProvider = ({ children }: { children: React.ReactNode })
         login: loginWithLens, 
         loginAsOnboardingUser,
         logout, 
+        getLoggedAccount,
         resume }}>
       {children}
     </LensSessionContext.Provider>

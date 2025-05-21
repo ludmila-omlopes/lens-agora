@@ -17,6 +17,7 @@ import { isNullish } from "@apollo/client/cache/inmemory/helpers";
 import { immutable, StorageClient } from "@lens-chain/storage-client";
 import { upload } from "thirdweb/storage";
 import { list } from "postcss";
+import { getLastLoggedAccountByWalletAddress } from "./lensProtocolUtils";
 
 export async function getCurrentNFT({ contractAdd, tokenId }: { contractAdd: string, tokenId: bigint }) {
    const contract = getContract({
@@ -319,8 +320,7 @@ export async function approveNFT(nft: NFT, nftcontract: string, account: any) {
   }
 }
 
-//incluir o collection address no objeto final
-export async function listNFTsOwnedBy(address: string) {
+export async function listNFTsOwnedBy(address: string, fetchCreatorsSocialAccounts: boolean = false): Promise<NFTCollection[]> {
   const erc1155 = await getERC1155OwnedByAddress(address);
   const erc721 = await getERC721OwnedByAddress(address);
 
@@ -334,12 +334,18 @@ export async function listNFTsOwnedBy(address: string) {
 
   console.log("ownedNFTs: ", ownedNFTs);
 
-  const nftPromises = ownedNFTs.map(async nft => {
-    const nftData = await getCurrentNFT({ contractAdd: nft.tokenAddress, tokenId: BigInt(nft.tokenId) });
-    const collectionData = await getCurrentCollection({ contractAdd: nft.tokenAddress });
-    return { nft: nftData, collection: collectionData, collectionAddress: collectionData.address } as NFTCollection;
+  const nftPromises = ownedNFTs.map(async nft => { //vira  mexe muda os nomes desses parametros.
+    const nftData = await getCurrentNFT({ contractAdd: nft.token_address, tokenId: BigInt(nft.token_id) });
+    //ntData.owner tá vindo nulo
+    const collectionData = await getCurrentCollection({ contractAdd: nft.token_address });
+    let creator = null;
+    if(collectionData && collectionData.owner && fetchCreatorsSocialAccounts) {
+      creator = await getLastLoggedAccountByWalletAddress(collectionData.owner);
+    }
+    return { nft: nftData, collection: collectionData, collectionAddress: collectionData.address, creatorLensAccount: creator } as NFTCollection;
   });
   const nfts = await Promise.all(nftPromises);
+  console.log("nfts: ", nfts);
   return nfts;
 }
 

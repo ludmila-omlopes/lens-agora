@@ -29,3 +29,13 @@ export async function getProfileByAddress(address: string) {
 
       //const imageurl = resolveScheme({ uri: nft.metadata.image!, client: thirdwebClient });
 }
+
+export function formatAddress(address: string) {
+    const formatedAddress = address.substring(0, 6) + "..." + address.substring(address.length - 4, address.length);
+    return formatedAddress;
+}
+
+export function isWalletAddress(address: string) {
+    const isValid = address.length === 42 && address.startsWith("0x");
+    return isValid;
+}

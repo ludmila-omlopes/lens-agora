@@ -1,5 +1,7 @@
 import { Account, AnyPost, evmAddress, MainContentFocus, PageSize, PaginatedResultInfo, Post, PostId, postId, PostReferenceType, PostVisibilityFilter, uri } from "@lens-protocol/client";
-import { currentSession, fetchAccounts, fetchAccountsAvailable, fetchAuthenticatedSessions, fetchPost, fetchPostReferences, fetchPosts, post } from "@lens-protocol/client/actions";
+import { currentSession, fetchAccount, fetchAccounts, fetchAccountsAvailable, fetchFollowStatus , fetchAuthenticatedSessions, 
+  fetchAccountGraphStats, fetchPost, fetchPostReferences, fetchPosts, post, 
+  lastLoggedInAccount} from "@lens-protocol/client/actions";
 import { lensPublicClient, lensPublicMainnetClient } from "./client/lensProtocolClient";
 import { gql } from '@apollo/client';
 import { useMutation } from '@apollo/client';
@@ -325,9 +327,83 @@ export async function getCommentsForNFT(
 
     const commentsResponse = await listCommentsFromPosts(postIds);
     return commentsResponse ? commentsResponse[0] : [];
-    
+
   } catch (error) {
     console.error("Failed to fetch comments for NFT:", error);
     return [];
   }
+}
+
+export async function getLensAccount(lensUsername: string)
+{
+  const result = await fetchAccount(lensPublicClient, {
+    username: {
+      localName: lensUsername,
+    },
+  });
+  
+  if (result.isErr()) {
+    console.error(result.error);
+    return null;
+  }
+  
+  const account = result.value;
+  return account;
+}
+
+//Returns followers and following of the account
+export async function getAccountStats(lensUsername: string) {
+  const account = await getLensAccount(lensUsername);
+  if (!account) {
+    return null;
+  }
+
+  const result = await fetchAccountGraphStats(lensPublicClient, {
+    account: account.address,
+  });
+
+  if (result.isErr()) {
+    return console.error(result.error);
+  }
+
+  const stats = result.value;
+  return stats;
+}
+
+export async function getIsFollowingStatus(lensUsername: string, loggedAccountAddress: string) {
+  const account = await getLensAccount(lensUsername);
+  if (!account) {
+    return null;
+  }
+
+  const result = await fetchFollowStatus(lensPublicClient, {
+    pairs: [
+      {
+        account: account.address,
+        follower: loggedAccountAddress,
+      },
+    ],
+  });
+
+  if (result.isErr()) {
+    return console.error(result.error);
+  }
+
+  const isFollowing = result.value[0].isFollowing.optimistic
+  ;
+  return isFollowing;
+}
+
+export async function getLastLoggedAccountByWalletAddress(walletAddress: string) {
+  
+  const result = await lastLoggedInAccount(lensPublicClient, {
+    address: evmAddress(walletAddress),
+  });
+
+  if (result.isErr()) {
+    console.error(result.error);
+    return null;
+  }
+
+  return result.value;
 }

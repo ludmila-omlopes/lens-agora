@@ -1,3 +1,4 @@
+import { Account } from "@lens-protocol/client";
 import { NFT } from "thirdweb";
 import { DirectListing, EnglishAuction } from "thirdweb/extensions/marketplace";
 
@@ -62,6 +63,7 @@ export type NFTCollection = {
     collection?: Collection;
     collectionAddress: string;
     imageURL?: string;
+    creatorLensAccount?: Account;
 };
 
 export type ListingWithProfile = (DirectListing | EnglishAuction) & {
