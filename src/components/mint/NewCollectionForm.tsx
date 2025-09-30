@@ -5,6 +5,8 @@ import { createNFTContract } from "../../../lib/nfts"
 import { useThirdwebWallet } from "@/hooks/useThirdwebWallet"
 import { useActiveAccount } from "thirdweb/react"
 
+//todo: colocar loading, conferir se está conectado na rede certa. Redirecionar pra página da collection.
+
 type Props = {
   goBack: () => void
 }

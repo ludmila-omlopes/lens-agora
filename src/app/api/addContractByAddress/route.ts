@@ -1,22 +1,25 @@
-import { sql } from "@vercel/postgres";
 import { NextResponse } from "next/server";
+import { addDeployedContract } from "../../../../lib/database";
 
 export async function POST(request: Request) {
-
-    const { address, contractAddress, contractType } = await request.json();
-    if (!address || !contractAddress || !contractType) {
-      return NextResponse.json({ message: 'Error' }, { status: 400 });
+  const { address, contractAddress, contractType } = await request.json();
+  
+  if (!address || !contractAddress || !contractType) {
+    return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
+  }
+  
+  try {
+    const result = await addDeployedContract(address, contractAddress, contractType, request.headers);
+    
+    if (result.success) {
+      return NextResponse.json({ message: result.message }, { status: 200 });
+    } else {
+      return NextResponse.json({ error: result.error }, { status: 500 });
     }
-    try {
-      await sql`
-        INSERT INTO contracts_deployed_by_address (address, contract_address, contract_type)
-        VALUES (${address}, ${contractAddress}, ${contractType})
-      `;
-      return NextResponse.json({ message: 'Contract submitted successfully' }, { status: 200 });
-    } catch (error) {
-      console.error("Error inserting deployed contract:", error);
-      return NextResponse.json({ error: 'Error inserting deployed contract' }, { status: 500 });
-    }
+  } catch (error) {
+    console.error("Error in addContractByAddress API:", error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
 
 

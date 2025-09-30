@@ -9,9 +9,9 @@ import { signMessage } from '@wagmi/core'
 import { config } from "@/app/Web3Provider";
 import { NFT } from "thirdweb";
 import { textOnly } from "@lens-protocol/metadata";
-import { uploadMetadataToGrove } from "./lensNetwork";
+ import { uploadMetadataToGrove, USE_TESTNET } from "./lensNetwork";
 
-const appAddress = "0xC75A89145d765c396fd75CbD16380Eb184Bd2ca7";
+const appAddress = USE_TESTNET ? "0xC75A89145d765c396fd75CbD16380Eb184Bd2ca7" : "0x8A5Cc31180c37078e1EbA2A23c861Acf351a97cE";
 
 export async function listAvailableLensAccounts(accountAddress: string)
 {

@@ -16,3 +16,20 @@ export const lensTesnet: Chain = {
   },
   testnet: true,
 };
+
+export const lensMainnet: Chain = {
+  id: 232,
+  name: "Lens Mainnet",
+  nativeCurrency: {
+    decimals: 18,
+    name: "GHO",
+    symbol: "GHO",
+  },
+  rpcUrls: {
+    default: { http: ["https://rpc.lens.xyz"] },
+  },
+  blockExplorers: {
+    default: { name: "Lens", url: "https://explorer.lens.xyz" }
+  },
+  testnet: false,
+};

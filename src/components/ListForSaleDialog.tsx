@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CreateDirectListingButton } from "thirdweb/react";
 import { marketplaceContractAddress } from "../../lib/marketplacev3";
-import { lensTestnetChain } from "../../lib/lensNetwork";
+import { activeChain } from "../../lib/lensNetwork";
 import { thirdwebClient } from "../../lib/client/thirdwebClient";
 import { useRouter } from 'next/navigation';
 
@@ -46,7 +46,7 @@ export const ListForSaleDialog: React.FC<ListForSaleDialogProps> = ({
           </Button>
           <CreateDirectListingButton
             contractAddress={marketplaceContractAddress}
-            chain={lensTestnetChain}
+            chain={activeChain}
             client={thirdwebClient}
             tokenId={BigInt(tokenId)}
             assetContractAddress={assetContract}

@@ -8,6 +8,9 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Footer from "../../components/Footer";
 import Header from "@/components/Header";
 import { LensSessionProvider } from "@/contexts/LensSessionContext";
+import { Toaster } from "@/components/ui/toaster";
+import { LensProvider } from "@lens-protocol/react";
+import { lensPublicClient } from "../../lib/client/lensProtocolClient";
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -57,15 +60,18 @@ export default function RootLayout({
         <ThirdwebProvider>
           <Web3Provider>
             <ThemeProvider>
-              <LensSessionProvider>
-                <div className="flex flex-col min-h-screen">
-                  <Header />
-                  <main className="flex-grow">
-                    {children}
-                  </main>
-                  <Footer />
-                </div>
-              </LensSessionProvider>
+             {/* <LensProvider client={lensPublicClient}> */}
+                <LensSessionProvider>
+                  <div className="flex flex-col min-h-screen">
+                    <Header />
+                    <main className="flex-grow pt-20">
+                      {children}
+                    </main>
+                    <Footer />
+                  </div>
+                  <Toaster />
+                </LensSessionProvider>
+              {/* </LensProvider> */}
             </ThemeProvider>
           </Web3Provider>
         </ThirdwebProvider>

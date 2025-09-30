@@ -19,11 +19,17 @@ export default function OwnedNFTsTab({ address }: { address: string }) {
   useEffect(() => {
     const fetchOwned = async () => {
       setLoading(true);
-
-      const owned = await listNFTsOwnedBy(address, true);
-      if (owned) setOwnedNFTs(owned);
-
-      setLoading(false);
+      try {
+        const owned = await listNFTsOwnedBy(address, true);
+        if (owned) {
+          setOwnedNFTs(owned);
+        }
+      } catch (error) {
+        console.error("Error fetching owned NFTs:", error);
+        // Could add error state management here if needed
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchOwned();

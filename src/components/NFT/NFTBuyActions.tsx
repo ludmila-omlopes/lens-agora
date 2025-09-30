@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { BuyDirectListingButton, TransactionButton, useActiveAccount, useSendAndConfirmTransaction } from "thirdweb/react";
 import { bidInAuction, cancelAuction, cancelListing, makeOffer, marketplaceContractAddress } from "../../../lib/marketplacev3";
-import { lensTestnetChain } from "../../../lib/lensNetwork";
+import { activeChain } from "../../../lib/lensNetwork";
 import { thirdwebClient } from "../../../lib/client/thirdwebClient";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MarketplaceInfo } from "../../../lib/types";
@@ -100,7 +100,7 @@ export const NFTBuyActions: React.FC<{
       )}
 
       {marketplaceInfo?.listing?.status !== "CANCELLED" && isListingCreator && isConnected && (
-        <button onClick={handleCancelListing} className="flex-1 bg-pink-500 hover:bg-pink-600">
+        <button onClick={handleCancelListing} className="w-full bg-gradient-to-r from-[#8EF5F5] to-[#7EF2F2] text-black font-black py-3 px-4 rounded-md border-2 border-black transform transition-transform duration-200 hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-none">
           CANCEL LISTING
         </button>
       )}
@@ -121,7 +121,7 @@ export const NFTBuyActions: React.FC<{
           </button>
           <BuyDirectListingButton
             contractAddress={marketplaceContractAddress}
-            chain={lensTestnetChain}
+            chain={activeChain}
             client={thirdwebClient}
             listingId={marketplaceInfo.listing.id}
             quantity={1n}

@@ -1,8 +1,7 @@
-import { sql } from "@vercel/postgres";
 import { NextResponse } from "next/server";
+import { getDeployedContractsByAddress } from "../../../../lib/database";
 
 export async function GET(request: Request) {
-
   const { searchParams } = new URL(request.url);
   const address = searchParams.get("address");
 
@@ -14,17 +13,20 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { rows } = await sql`
-      SELECT address, contract_address, contract_type, created_at
-      FROM contracts_deployed_by_address
-      WHERE address = ${address}
-    `;
-
-    return NextResponse.json({ contracts: rows }, { status: 200 });
+    const result = await getDeployedContractsByAddress(address, request.headers);
+    
+    if (result.success) {
+      return NextResponse.json({ contracts: result.contracts }, { status: 200 });
+    } else {
+      return NextResponse.json(
+        { error: result.error },
+        { status: 500 }
+      );
+    }
   } catch (error) {
-    console.error("Error fetching deployed contracts:", error);
+    console.error("Error in listContractsByAddress API:", error);
     return NextResponse.json(
-      { error: "Error fetching deployed contracts" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

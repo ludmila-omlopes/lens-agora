@@ -1,5 +1,5 @@
 import { Account } from "@lens-protocol/client";
-import { NFT } from "thirdweb";
+import { Address, NFT } from "thirdweb";
 import { DirectListing, EnglishAuction } from "thirdweb/extensions/marketplace";
 
 export type Collection = {
@@ -19,9 +19,8 @@ export type Collection = {
 //stats: { items: 1000, owners: 750, floorPrice: '0.5 ETH', volumeTraded: '1250 ETH' }
 
 export type MarketplaceInfo = {
-    listingType: string;
-    nft: NFT;
-    collection: Collection;
+    nftAddress: string;
+    nftId: bigint;
     listing: DirectListing;
     auction: EnglishAuction;
 };
@@ -69,3 +68,62 @@ export type NFTCollection = {
 export type ListingWithProfile = (DirectListing | EnglishAuction) & {
     creatorProfile: string;
   };
+
+
+  export enum ActivityType {
+    NewListing = "NEW_LISTING",
+    UpdatedListing = "UPDATED_LISTING",
+    CancelledListing = "CANCELLED_LISTING",
+    BuyerApprovedForListing = "BUYER_APPROVED_FOR_LISTING",
+    CurrencyApprovedForListing = "CURRENCY_APPROVED_FOR_LISTING",
+    NewOffer = "NEW_OFFER",
+    CancelledOffer = "CANCELLED_OFFER",
+    AcceptedOffer = "ACCEPTED_OFFER",
+    NewAuction = "NEW_AUCTION",
+    NewBid = "NEW_BID",
+    CancelledAuction = "CANCELLED_AUCTION",
+    AuctionClosed = "AUCTION_CLOSED",
+    NewSale = "NEW_SALE",
+  }
+
+  export type ActivityItem = {
+    id: string; // `${txHash}:${logIndex}`
+    type: ActivityType;
+    assetContract: Address;
+    tokenId: bigint;
+    actor?: Address;
+    counterparty?: Address;
+    price?: Number;
+    currency?: Address;
+    quantity?: Number;
+    listingId?: bigint;
+    offerId?: bigint;
+    auctionId?: bigint;
+    txHash: `0x${string}`;
+    blockNumber: bigint;
+    blockTimestamp?: string; // thirdweb includes block info on the tx object when available
+    actorProfile?: any; // Social profile for actor
+    counterpartyProfile?: any; // Social profile for counterparty
+  };
+
+  export type NFTScope = {
+    assetContract: Address;
+    tokenId: bigint;
+  };
+  
+  export type Range = {
+    fromBlock?: bigint | number;
+    toBlock?: bigint | number;
+  };
+
+  export type Profile = {
+    image: string;
+    name: string;
+    bio: string;
+    url: string;
+  };
+
+  export type erc1155NFT = {
+    legacyNFT: NFT;
+    owners: string[];
+  }

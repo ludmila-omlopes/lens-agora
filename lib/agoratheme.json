@@ -6,7 +6,7 @@
   "--ck-connectbutton-background": "#ffffff",
   "--ck-connectbutton-box-shadow": "-4px 4px 0px #000000, inset 0 0 0 2px #000000",
   "--ck-connectbutton-border-radius": "8px",
-  "--ck-connectbutton-hover-background": "#90f2f7",
+  "--ck-connectbutton-hover-background": "#ffffff",
   "--ck-connectbutton-active-box-shadow": "0 0 0 0 #000000, inset 0 0 0 2px #000000",
   "--ck-connectbutton-balance-color": "#000000",
   "--ck-connectbutton-balance-background": "#F3EDE8",

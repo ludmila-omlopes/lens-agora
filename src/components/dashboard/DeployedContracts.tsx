@@ -9,7 +9,7 @@ import { useAccount } from "wagmi";
 
 export default function DeployedContracts() {
   const [deployedContracts, setDeployedContracts] = useState<Collection[]>([]);
-  const [isLoading, setIsLoading] = useState(true); // ✅ Add loading state
+  const [isLoading, setIsLoading] = useState(true);
   const [activeContract, setActiveContract] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -23,14 +23,14 @@ export default function DeployedContracts() {
   useEffect(() => {
     const fetchContracts = async () => {
       if (activeAccount && activeAccount.address) {
-        setIsLoading(true); // ✅ Start loading
+        setIsLoading(true);
         try {
           const contracts = await listCreatedContractsByAddress(activeAccount.address);
           setDeployedContracts(contracts);
         } catch (error) {
           console.error("Error fetching deployed contracts:", error);
         } finally {
-          setIsLoading(false); // ✅ Stop loading
+          setIsLoading(false);
         }
       }
     };
@@ -112,7 +112,7 @@ export default function DeployedContracts() {
                 Mint NFT
               </Button>
               <Link
-                href={`/contract/${contract.address}`}
+                href={`/items/${contract.address}`}
                 className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
               >
                 View Details

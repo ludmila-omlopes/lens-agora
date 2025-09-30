@@ -9,7 +9,7 @@ export const metadata = {
 
 export default async function ExplorePage() {
   if (process.env.NODE_ENV === "production") {
-    return redirect("/"); 
+    return redirect("/"); //isso aqui parece que não está funcionando
   }
   const listings = await getAllValidListingsWithProfile();
 

@@ -10,6 +10,8 @@ import { DirectListing } from 'thirdweb/extensions/marketplace'
 import TopCollectors from '@/components/TopCollectors'
 import GroupsHighlight from '@/components/GroupsHighlight'
 import LaunchingSoonPage from './soon/page'
+import CallToAction from '@/components/CallToAction'
+import Newsletter from '@/components/Newsletter'
 
 export default function Home() {
   const { theme } = useTheme()
@@ -37,9 +39,11 @@ export default function Home() {
       <main>
         <Hero />
         <FeaturedNFTs nfts={featuredNFTs} />
+        <CallToAction />
+        <Newsletter />
         {/* <TopCollections />*/}
-        <TopCollectors />
-         <GroupsHighlight />
+        {/* <TopCollectors /> */}
+        {/* <GroupsHighlight /> */}
       </main>
     </div>
   )

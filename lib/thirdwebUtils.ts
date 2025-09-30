@@ -1,9 +1,9 @@
 import { getOwnedNFTs } from "thirdweb/extensions/erc721";
-import { lensTestnetChain } from "./lensNetwork";
+import { activeChain } from "./lensNetwork";
 
 //Todos os métodos disponíveis na API do Insight: https://insight-api.thirdweb.com/reference#tag/events
 
-const baseUrl = 'https://' + lensTestnetChain.id + '.insight.thirdweb.com/v1/';
+const baseUrl = 'https://' + activeChain.id + '.insight.thirdweb.com/v1/';
 const methods = ['events/', 'transactions/', 'tokens/erc20/', 'tokens/erc721/', 'tokens/erc1155/'];
 
 async function callThirdwebInsight(url: string) {
@@ -32,5 +32,10 @@ export async function getERC721OwnedByAddress(address: string) {
 
 export async function getERC20OwnedByAddress(address: string) {
     const url = baseUrl + 'tokens/erc20/' + address;
+    return callThirdwebInsight(url);
+}
+
+export async function getNFTOwners(nftAddress: string, tokenId: string) {
+    const url = baseUrl + 'nfts/owners/' + nftAddress + '/' + tokenId;
     return callThirdwebInsight(url);
 }

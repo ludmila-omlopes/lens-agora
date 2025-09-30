@@ -1,4 +1,4 @@
-import { sql, postgresConnectionString } from "@vercel/postgres";
+import { addContractAction, getContractsAction, addWaitlistAction } from "../actions";
 import { DeployedContract } from "../types";
 
 /**
@@ -12,25 +12,14 @@ export const addDeployedContract = async (
   contractAddress: string,
   contractType: string
 ) => {
-  const response = await fetch("/api/addContractByAddress", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      address: address,
-      contractAddress: contractAddress,
-      contractType: contractType,
-    }),
-  });
-
-  const data = await response.json();
-  if (response.ok) {
-    console.log("Contract added:", data.message);
+  const result = await addContractAction(address, contractAddress, contractType);
+  
+  if (result.success) {
+    console.log("Contract added:", result.message);
   } else {
-    console.error("Error:", data.error);
+    console.error("Error:", result.error);
   }
-  return data;
+  return result;
 };
 
 /**
@@ -38,27 +27,21 @@ export const addDeployedContract = async (
  * @param address - The address of the account to fetch contracts for.
  * @returns An array of deployed contracts.
  */
-
 export const listDeployedContractsByAddress = async (address: string): Promise<DeployedContract[]> => {
   try {
-    const response = await fetch(`/api/listContractsByAddress?address=${address}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    const data = await response.json();
-    if (response.ok) {
-      console.log("Contracts retrieved:", data.contracts);
-      return data.contracts.map((contract: any) => ({
+    const result = await getContractsAction(address);
+    
+    if (result.success && result.contracts) {
+      console.log("Contracts retrieved:", result.contracts);
+      return result.contracts.map((contract: any) => ({
+        id: contract.id || 0,
         address: contract.address,
         contractAddress: contract.contract_address,
         contractType: contract.contract_type,
         createdAt: contract.created_at,
       }));
     } else {
-      console.error("Error:", data.error);
+      console.error("Error:", result.error);
       return [];
     }
   } catch (error) {
@@ -72,23 +55,12 @@ export const addWaitlist = async (
   email: string,
   wallet_address: string
 ) => {
-  const response = await fetch("/api/addWaitlist", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      lens_username: lens_username,
-      email: email,
-      wallet_address: wallet_address,
-    }),
-  });
-
-  const data = await response.json();
-  if (response.ok) {
-    console.log("Waitlist added:", data.message);
+  const result = await addWaitlistAction(lens_username, email, wallet_address);
+  
+  if (result.success) {
+    console.log("Waitlist added:", result.message);
   } else {
-    console.error("Error:", data.error);
+    console.error("Error:", result.error);
   }
-  return data;
+  return result;
 }

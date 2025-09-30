@@ -1,28 +1,29 @@
-import { getAddress, getContract, NFT, readContract, sendTransaction } from "thirdweb";
+import { getAddress, getContract, Insight, NFT, readContract, sendTransaction } from "thirdweb";
 import { thirdwebClient, thirdwebClientServer } from "./client/thirdwebClient";
 import { getNFT as getNFT1155, getNFTs as getNFTs1155, mintTo as mintERC1155to, lazyMint as lazyMintERC1155, setApprovalForAll } from "thirdweb/extensions/erc1155";
-import { getNFT as getNFT721, getNFTs as getNFTs721, mintTo as mintERC721to, lazyMint as lazyMintERC721, approve, getAllOwners } from "thirdweb/extensions/erc721";
-import { lensTestnetBlockexplorerAPI, lensTestnetChain } from "./lensNetwork";
+import { getNFT as getNFT721, getNFTs as getNFTs721, mintTo as mintERC721to, lazyMint as lazyMintERC721, approve, getAllOwners, getOwnedNFTs } from "thirdweb/extensions/erc721";
+import { lensTestnetBlockexplorerAPI, lensTestnetChain, activeChain } from "./lensNetwork";
 import { deployERC1155Contract, deployERC721Contract } from "thirdweb/deploys";
 import { verifyContract } from "thirdweb/contract";
 import { isERC721 } from "thirdweb/extensions/erc721";
 import { isERC1155 } from "thirdweb/extensions/erc1155";
 import { setClaimConditions } from "thirdweb/extensions/erc721";
 import { resolveScheme } from "thirdweb/storage";
-import { Collection, NFTCollection } from "./types";
+import { Collection, CollectionMarketplaceInfo, erc1155NFT, NFTCollection } from "./types";
 import { getCollectionMarketplaceInfo, marketplaceContractAddress } from "./marketplacev3";
-import { getERC1155OwnedByAddress, getERC721OwnedByAddress } from "./thirdwebUtils";
+import { getERC1155OwnedByAddress, getERC721OwnedByAddress, getNFTOwners } from "./thirdwebUtils";
 import { addDeployedContract, listDeployedContractsByAddress } from "./db";
 import { isNullish } from "@apollo/client/cache/inmemory/helpers";
 import { immutable, StorageClient } from "@lens-chain/storage-client";
 import { upload } from "thirdweb/storage";
 import { list } from "postcss";
 import { getLastLoggedAccountByWalletAddress } from "./lensProtocolUtils";
+import { sepolia } from "thirdweb/chains";
 
 export async function getCurrentNFT({ contractAdd, tokenId }: { contractAdd: string, tokenId: bigint }) {
    const contract = getContract({
      client: thirdwebClientServer,
-     chain: lensTestnetChain,
+     chain: activeChain,
      address: contractAdd,
    });
    
@@ -32,8 +33,20 @@ export async function getCurrentNFT({ contractAdd, tokenId }: { contractAdd: str
    if (issingleNFT) {
      const nft = await getNFT721({
        contract,
-       tokenId
+       tokenId,
+       includeOwner: true
      });
+
+     console.log("contract: ", contract);
+
+    //fazendo isso aqui pq o owner não está sendo retornado pelo getNFT721
+     const data = await readContract({
+      contract,
+      method: "function ownerOf(uint256 tokenId) view returns (address)",
+      params: [tokenId],
+    });
+
+    nft.owner = data;
 
      return nft;
    }
@@ -43,8 +56,17 @@ export async function getCurrentNFT({ contractAdd, tokenId }: { contractAdd: str
        tokenId
      });
 
-     return nft;
+     const data = await getNFTOwners(contractAdd, tokenId.toString());
+     const owners = data.data.find((chain_id: { chain_id: string; }) => chain_id.chain_id === activeChain.id.toString()).owner_addresses;
+     const finalNFT = {
+      legacyNFT: nft,
+      owners: owners
+     } as erc1155NFT;
+
+     return finalNFT;
    }
+
+
 
     return null;
 }
@@ -57,62 +79,102 @@ export async function getCurrentNFT({ contractAdd, tokenId }: { contractAdd: str
  */
 //todo: adicionar o tipo do contrato (drop, etc)	
 export async function getCurrentCollection({ contractAdd }: { contractAdd: string }) {
-  const contract = getContract({
-    client: thirdwebClientServer,
-    chain: lensTestnetChain,
-    address: contractAdd,
-  });
+  try {
+    if (!contractAdd) {
+      throw new Error("Contract address is required");
+    }
 
-const [contractOwner, contractMetadataURI, isMultiNFT, marketplaceInfo] = await Promise.all([
-  readContract({ contract, method: "function owner() view returns (address)", params: [] }),
-  readContract({ contract, method: "function contractURI() view returns (string)", params: [] }),
-  isERC1155({ contract }),
-  getCollectionMarketplaceInfo(contractAdd)
-]);
+    const contract = getContract({
+      client: thirdwebClientServer,
+      chain: activeChain,
+      address: contractAdd,
+    });
 
-const metadataUrl = resolveScheme({ uri: contractMetadataURI!, client: thirdwebClientServer });
-const metadata = await fetch(metadataUrl).then(res => res.json());
+    if (!contract) {
+      throw new Error("Failed to get contract");
+    }
 
-//getDefaultRoyaltyInfo
-//getPlatformFeeInfo
-//getRoyaltyInfoForToken
+    let [contractOwner, contractMetadataURI, isMultiNFT, marketplaceInfo] = ["", "", false, null as CollectionMarketplaceInfo | null];
+    let [contractName, contractSymbol, contractDescription, contractImageURI, contractImageURL, contractSocialLinks] = ["", "", "", "", "", []];
+    try {
+      [contractOwner, contractMetadataURI, isMultiNFT, marketplaceInfo] = await Promise.all([ //somente os contratos completos do thirdweb tem esses metodos
+        readContract({ contract, method: "function owner() view returns (address)", params: [] }).catch(() => ""), // Return empty string if owner() fails
+        readContract({ contract, method: "function contractURI() view returns (string)", params: [] }).catch(() => ""), // Return empty string if contractURI() fails
+        isERC1155({ contract }),
+        getCollectionMarketplaceInfo(contractAdd)
+      ]);
+    } catch (error) {
+      throw new Error(`Failed to fetch contract data: ${error instanceof Error ? error.message : String(error)}`);
+    }
 
-const contractName = metadata.name;
-const contractSymbol = metadata.symbol;
-const description = metadata.description;
-const imageURI = metadata.image;
-const imageURL = metadata.image && resolveScheme({uri: imageURI, client: thirdwebClientServer});
-const socialLinks = metadata.links;  //todo: colocar isso na tela
+    if (!contractMetadataURI) {
+      [contractName, contractSymbol] = await Promise.all([
+        readContract({ contract, method: "function name() view returns (string)", params: [] }).catch(() => ""), // Return empty string if name() fails
+        readContract({ contract, method: "function symbol() view returns (string)", params: [] }).catch(() => ""), // Return empty string if symbol() fails
+      ]);
+    }
+    else {
+      const metadataUrl = resolveScheme({ uri: contractMetadataURI, client: thirdwebClientServer });
+    
+      let metadata;
+      try {
+        const response = await fetch(metadataUrl);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        metadata = await response.json();
+        console.log("metadata: ", metadata);
+      } catch (error) {
+        throw new Error(`Failed to fetch metadata: ${error instanceof Error ? error.message : String(error)}`);
+      }
+  
+      contractDescription = metadata.description;
+      contractImageURI = metadata.image;
+      contractImageURL = metadata.image && resolveScheme({uri: metadata.image, client: thirdwebClientServer});
+      contractSocialLinks = metadata.links || [];
+  
+      contractName = metadata.name;
+      contractSymbol = metadata.symbol;
+    }
 
-// ✅ Fetch NFT list in parallel with metadata fetching
-const itemsPromise = listNFTs({ contractAdd, start: 0, count: 10 }); //todo: pegar todos ou não?
+   
+    let items;
+    try {
+      // Fetch NFT list in parallel with metadata fetching
+      items = await listNFTs({ contractAdd, start: 0, count: 12 }); //como assim 12???
+    } catch (error) {
+      console.warn(`Failed to fetch NFT items: ${error instanceof Error ? error.message : String(error)}`);
+      items = [];
+    }
 
-// ✅ Await NFTs (previously executed in parallel)
-const items = await itemsPromise;
+    const collection = {
+      name: contractName,
+      owner: contractOwner,
+      address: contractAdd,
+      description: contractDescription,
+      imageUrl: contractImageURL,
+      type: isMultiNFT ? "ERC1155" : "ERC721",
+      symbol: contractSymbol,
+      is1155: isMultiNFT,
+      items: items,
+      totalItems: items ? items.length : 0,
+      marketplaceInfo: marketplaceInfo || null,
+      socialLinks: contractSocialLinks
+    } as Collection;
 
-//stats: { owners: 750, floorPrice: '0.5 ETH', volumeTraded: '1250 ETH' }
+    return collection;
 
-  const collection = {
-    name: contractName,
-    owner: contractOwner,
-    address: contractAdd,
-    description: description,
-    imageUrl: imageURL,
-    symbol: contractSymbol,
-    is1155: isMultiNFT,
-    items: items,
-    totalItems: items ? items.length : 0,
-    marketplaceInfo: marketplaceInfo
-  } as Collection;
-
-  return collection;
+  } catch (error) {
+    console.error("Error in getCurrentCollection:", error);
+    throw error;
+  }
 }
 
 export async function listNFTs({ contractAdd, start, count }: { contractAdd: string, start: number, count: number }) {
   
   const contract = getContract({
     client: thirdwebClientServer,
-    chain: lensTestnetChain,
+    chain: activeChain,
     address: contractAdd,
   });
 
@@ -123,7 +185,8 @@ export async function listNFTs({ contractAdd, start, count }: { contractAdd: str
         const nft = await getNFTs721({
         contract,
         start,
-        count
+        count,
+        useIndexer: true
         });
     
         return nft;
@@ -192,11 +255,11 @@ export async function mintNewNFT({ contractAdd, name, quantity, description, min
   const storageClient = StorageClient.create();
 
   const acl = immutable(
-    lensTestnetChain.id
+    activeChain.id
   );
 
   const contract = getContract({
-        chain: lensTestnetChain,
+        chain: activeChain,
         address: contractAdd,
         client: thirdwebClient,
       });      
@@ -247,7 +310,7 @@ export async function mintNewNFT({ contractAdd, name, quantity, description, min
 
 export async function lazyMintNewNFTs({ contractAdd, name, description, account }: { contractAdd: string, name: string, description: string, account: any }) {
     const contract = getContract({
-        chain: lensTestnetChain,
+        chain: activeChain,
         address: contractAdd,
         client: thirdwebClient,
       });
@@ -285,15 +348,29 @@ export async function lazyMintNewNFTs({ contractAdd, name, description, account 
 
 //todo: configurar o placeholder image
 export function getNFTMediaURL(nft: NFT) {
-  if (nft.metadata && nft.metadata.image) {
-    return resolveScheme({ uri: nft.metadata.image, client: thirdwebClientServer });
+  try {
+    if (!nft) {
+      throw new Error("NFT object is required");
+    }
+
+    if (nft.metadata && nft.metadata.image) {
+      try {
+        return resolveScheme({ uri: nft.metadata.image, client: thirdwebClientServer });
+      } catch (error) {
+        console.error("Error resolving NFT image URI:", error);
+        return "/logo1.png";
+      }
+    }
+    return "/logo1.png";
+  } catch (error) {
+    console.error("Error getting NFT media URL:", error);
+    return "/logo1.png";
   }
-  return "/logo1.png";
 }
 
 export async function approveNFT(nft: NFT, nftcontract: string, account: any) {
   const contract = getContract({
-    chain: lensTestnetChain,
+    chain: activeChain,
     address: nftcontract,
     client: thirdwebClientServer,
   });
@@ -321,32 +398,82 @@ export async function approveNFT(nft: NFT, nftcontract: string, account: any) {
 }
 
 export async function listNFTsOwnedBy(address: string, fetchCreatorsSocialAccounts: boolean = false): Promise<NFTCollection[]> {
-  const erc1155 = await getERC1155OwnedByAddress(address);
-  const erc721 = await getERC721OwnedByAddress(address);
-
-  const ownedNFTs = [];
-  if (erc1155 && erc1155.data) {
-    ownedNFTs.push(...erc1155.data);
-  }
-  if (erc721 && erc721.data) {
-    ownedNFTs.push(...erc721.data);
-  }
-
-  console.log("ownedNFTs: ", ownedNFTs);
-
-  const nftPromises = ownedNFTs.map(async nft => { //vira  mexe muda os nomes desses parametros.
-    const nftData = await getCurrentNFT({ contractAdd: nft.token_address, tokenId: BigInt(nft.token_id) });
-    //ntData.owner tá vindo nulo
-    const collectionData = await getCurrentCollection({ contractAdd: nft.token_address });
-    let creator = null;
-    if(collectionData && collectionData.owner && fetchCreatorsSocialAccounts) {
-      creator = await getLastLoggedAccountByWalletAddress(collectionData.owner);
+  try {
+    if (!address) {
+      throw new Error("Address is required");
     }
-    return { nft: nftData, collection: collectionData, collectionAddress: collectionData.address, creatorLensAccount: creator } as NFTCollection;
-  });
-  const nfts = await Promise.all(nftPromises);
-  console.log("nfts: ", nfts);
-  return nfts;
+
+    const [erc1155, erc721] = await Promise.all([
+      getERC1155OwnedByAddress(address),
+      getERC721OwnedByAddress(address)
+    ]).catch(error => {
+      throw new Error(`Failed to fetch owned NFTs: ${error.message}`);
+    });
+
+    const ownedNFTs = [];
+    if (erc1155?.data) {
+      ownedNFTs.push(...erc1155.data);
+    }
+    if (erc721?.data) {
+      ownedNFTs.push(...erc721.data);
+    }
+
+    console.log("ownedNFTs: ", ownedNFTs);
+
+    const nftPromises = ownedNFTs.map(async nft => {
+      try {
+        const nftData = await getCurrentNFT({ 
+          contractAdd: nft.token_address, 
+          tokenId: BigInt(nft.token_id) 
+        });
+        console.log("nftData: ", nftData);
+
+        if (!nftData) {
+          throw new Error(`Failed to fetch NFT data for token ${nft.token_id}`);
+        }
+
+        const collectionData = await getCurrentCollection({ 
+          contractAdd: nft.token_address 
+        });
+        console.log("collectionData: ", collectionData);
+
+        if (!collectionData) {
+          throw new Error(`Failed to fetch collection data for address ${nft.token_address}`);
+        }
+
+        let creator = null;
+        if (collectionData.owner && fetchCreatorsSocialAccounts) {
+          creator = await getLastLoggedAccountByWalletAddress(collectionData.owner)
+            .catch(error => {
+              console.warn(`Failed to fetch creator social account: ${error.message}`);
+              return null;
+            });
+        }
+
+        return { 
+          nft: nftData, 
+          collection: collectionData, 
+          collectionAddress: collectionData.address, 
+          creatorLensAccount: creator 
+        } as NFTCollection;
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          console.error(`Error processing NFT ${nft.token_id}: ${error.message}`);
+        } else {
+          console.error(`Error processing NFT ${nft.token_id}: ${error}`);
+        }
+        return null;
+      }
+    });
+
+    const nfts = (await Promise.all(nftPromises)).filter(nft => nft !== null);
+    console.log("owned nfts: ", nfts);
+    return nfts;
+
+  } catch (error) {
+    console.error("Error in listNFTsOwnedBy:", error);
+    throw error;
+  }
 }
 
 export async function isNFTOwnedByAddress(address: string, nft: NFT, collectionAddress: string) {
@@ -355,11 +482,11 @@ export async function isNFTOwnedByAddress(address: string, nft: NFT, collectionA
   }
   if(nft && nft.type === "ERC721") {
     const ownedNFTs = await getERC721OwnedByAddress(address); //nao pega se tiver listado em auction
-    return ownedNFTs.data.some((ownedNFT: { token_id: string; token_address: string; }) => ownedNFT.token_id === Number(nft.id).toString() && getAddress(ownedNFT.token_address) === getAddress(collectionAddress));
+    return ownedNFTs?.data.some((ownedNFT: { token_id: string; token_address: string; }) => ownedNFT.token_id === Number(nft.id).toString() && getAddress(ownedNFT.token_address) === getAddress(collectionAddress));
   }
   else if(nft && nft.type === "ERC1155") { //como 1155 são multieditions, um único id tem vários owners
     const ownedNFTs = await getERC1155OwnedByAddress(address);
-    return ownedNFTs.data.some((ownedNFT: { tokenId: string; tokenAddress: string; }) => ownedNFT.tokenId === nft.id.toString() && getAddress(ownedNFT.tokenAddress) === getAddress(collectionAddress)); 
+    return ownedNFTs?.data.some((ownedNFT: { tokenId: string; tokenAddress: string; }) => ownedNFT.tokenId === nft.id.toString() && getAddress(ownedNFT.tokenAddress) === getAddress(collectionAddress)); 
   }
   return false;
 }
@@ -368,7 +495,7 @@ export async function get721NFTOwner(nft: NFT, collectionAddress: string)
 {
   //incluir dados de redes sociais (imagem, username, etc)
   const contract = getContract({
-    chain: lensTestnetChain,
+    chain: activeChain,
     address: collectionAddress,
     client: thirdwebClient,
   }); 
@@ -390,7 +517,7 @@ export async function get721NFTOwner(nft: NFT, collectionAddress: string)
 
 async function createMultieditionContract(account: any, name: string, description: string, symbol: string, image?: File) {
   const contractAddress = await deployERC1155Contract({
-    chain: lensTestnetChain,
+    chain: activeChain,
     client: thirdwebClient,
     account: account!,
     type: "TokenERC1155",
@@ -414,7 +541,7 @@ async function createMultieditionContract(account: any, name: string, descriptio
     console.log("contractAddress: ", contractAddress);
 
     const contract = getContract({
-      chain: lensTestnetChain,
+      chain: activeChain,
       address: contractAddress,
       client: thirdwebClient,
     });
@@ -435,7 +562,7 @@ async function createMultieditionContract(account: any, name: string, descriptio
 async function createSingleEditionContract(account: any, name: string, description: string, symbol: string, image?: File) {
   //todo: passar as fees
   const contractAddress = await deployERC721Contract({
-    chain: lensTestnetChain,
+    chain: activeChain,
     client: thirdwebClient,
     account: account!,
     type: "TokenERC721",
@@ -459,7 +586,7 @@ async function createSingleEditionContract(account: any, name: string, descripti
     console.log("contractAddress: ", contractAddress);
 
     const contract = getContract({
-      chain: lensTestnetChain,
+      chain: activeChain,
       address: contractAddress,
       client: thirdwebClient,
     });

@@ -4,14 +4,15 @@ import { WagmiProvider, createConfig, http } from "wagmi";
 import { mainnet } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConnectKitProvider, getDefaultConfig } from "connectkit";
-import { lensTesnet } from "../../lib/customChains";
+import { lensMainnet, lensTesnet } from "../../lib/customChains";
 import customtheme from "../../lib/agoratheme.json";
 import CustomAvatar from "@/components/ConnectedCustomAvatar";
+import { lensMainnetChain } from "../../lib/lensNetwork";
 
 export const config = createConfig(
   getDefaultConfig({
     // Your dApps chains
-    chains: [mainnet, lensTesnet],
+    chains: [mainnet, lensTesnet, lensMainnet],
     transports: {
       [lensTesnet.id]: http(lensTesnet.rpcUrls.default.http[0]),
       [mainnet.id]: http(mainnet.rpcUrls.default.http[0]),

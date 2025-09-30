@@ -2,32 +2,44 @@ import { EnsProfile, getSocialProfiles } from "thirdweb/social";
 import { thirdwebClient } from "./client/thirdwebClient";
 import { resolveScheme } from "thirdweb/storage";
 import { url } from "inspector";
+import {  evmAddress } from "@lens-protocol/client";
+import { fetchAccountsBulk } from "@lens-protocol/client/actions";
+import { lensPublicClient } from "./client/lensProtocolClient";
 
-//todo: pegar acount do Lens
 //todo: pegar dados do Farcaster pra imagem de avatar e nome
-export async function getProfileByAddress(address: string) {
-    const finalProfile = {
-        image: "/avatar.png",
-        name: address.substring(0, 6) + "..." + address.substring(address.length - 4, address.length),
-        bio: "",
-        url: "", }
+export async function getProfileByAddress(addresses: string | string[]) {
 
-    const profiles = await getSocialProfiles({
-        address: address,
-        client: thirdwebClient,
-      });
+    const addressArray = Array.isArray(addresses) ? addresses : [addresses];
 
-      const ensProfile = profiles && profiles.find(profile => profile.type === 'ens');
-      if (ensProfile && ensProfile.type === 'ens') {
-        finalProfile.name = ensProfile.name!;
-        const metadata = ensProfile.metadata as EnsProfile;
-        finalProfile.image = metadata.avatar!;
-        finalProfile.bio = ensProfile.bio!;
-      }
+    const lensAccounts = await fetchAccountsBulk(lensPublicClient, {
+      ownedBy: addressArray.map(addr => evmAddress(addr))
+  });
 
-      return finalProfile;
+    const profiles = await Promise.all(addressArray.map(async (address) => {
+        const profile = {
+            image: "/avatar.png", 
+            name: address.substring(0, 6) + "..." + address.substring(address.length - 4, address.length),
+            bio: "",
+            url: "",
+        };
 
-      //const imageurl = resolveScheme({ uri: nft.metadata.image!, client: thirdwebClient });
+        if (lensAccounts.isOk()) {
+            const account = lensAccounts.value.find(acc => 
+                acc.owner.toLowerCase() === address.toLowerCase()
+            );
+            
+            if (account) {
+                profile.name = account.metadata?.name || account.username?.localName || formatAddress(address);
+                profile.image = account.metadata?.picture || "/placeholder.png";
+                profile.bio = account.metadata?.bio || "";
+            }
+        }
+
+        return profile;
+    }));
+
+    // Return single profile if input was single address, otherwise return array
+    return Array.isArray(addresses) ? profiles : profiles[0];
 }
 
 export function formatAddress(address: string) {

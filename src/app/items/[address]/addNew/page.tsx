@@ -6,9 +6,11 @@ import Link from "next/link"
 import { ImageIcon, Film, X, Plus, AlertCircle, ArrowRight, ArrowLeft, Tag, FileText, Layers } from "lucide-react"
 import { getCurrentCollection, mintNewNFT } from "../../../../../lib/nfts"
 import { Collection } from "../../../../../lib/types"
-import { toast } from "@/hooks/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { useThirdwebWallet } from "@/hooks/useThirdwebWallet"
 import { useActiveAccount } from "thirdweb/react"
+import { useAccount } from "wagmi"
+import { activeChain } from "../../../../../lib/lensNetwork"
 
 type Attribute = {
   id: string
@@ -21,6 +23,8 @@ export default function MintNFTPage({ params }: { params: { address: string } })
   const [isMinting, setIsMinting] = useState(false);
     useThirdwebWallet();
     const account = useActiveAccount();
+    const { chainId } = useAccount();
+    const { toast } = useToast();
 
   useEffect(() => {
     const fetchCollection = async () => {
@@ -182,6 +186,16 @@ export default function MintNFTPage({ params }: { params: { address: string } })
       toast({
         title: "Error",
         description: "You must be connected to your wallet to mint an NFT.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if user is connected to the correct network
+    if (chainId !== activeChain.id) {
+      toast({
+        title: "Wrong Network",
+        description: `Please switch to ${activeChain.id === 37111 ? 'Lens Testnet' : 'Lens Mainnet'} to mint NFTs.`,
         variant: "destructive",
       });
       return;
