@@ -9,6 +9,9 @@ export default async function CollectionPage({ params }: { params: { address: st
     return redirect("/");
   }
  const collection = await getCurrentCollection({ contractAdd: params.address });
+ if (!collection) {
+  notFound();
+ }
  const nfts = await listNFTs({ contractAdd: params.address, start: 0, count: 12 });
  console.log("nfts: ", nfts);
  revalidatePath(`/items/${params.address}`);

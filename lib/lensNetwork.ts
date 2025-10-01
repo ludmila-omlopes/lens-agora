@@ -2,7 +2,7 @@ import { immutable, StorageClient } from '@lens-chain/storage-client';
 import { defineChain } from 'thirdweb';
 
 // Configuration to switch between testnet and mainnet
-export const USE_TESTNET = true; // Set to false to use mainnet
+export const USE_TESTNET = process.env.NEXT_PUBLIC_LENSNETWORK_ENVIRONMENT === "testnet";
 
 export const lensTestnetChain = defineChain({
   id: 37111,

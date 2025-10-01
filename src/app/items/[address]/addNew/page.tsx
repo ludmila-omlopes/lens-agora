@@ -21,6 +21,7 @@ type Attribute = {
 export default function MintNFTPage({ params }: { params: { address: string } }) {
   const [collectionInfo, setCollectionInfo] = useState<Collection>();
   const [isMinting, setIsMinting] = useState(false);
+  const [error, setError] = useState<string | null>("This is a test error message to demonstrate error display functionality.");
     useThirdwebWallet();
     const account = useActiveAccount();
     const { chainId } = useAccount();
@@ -29,8 +30,17 @@ export default function MintNFTPage({ params }: { params: { address: string } })
   useEffect(() => {
     const fetchCollection = async () => {
       if (params.address) {
-        const fetchedCollectionInfo = await getCurrentCollection({ contractAdd: params.address });
-        setCollectionInfo(fetchedCollectionInfo);
+        try {
+          const fetchedCollectionInfo = await getCurrentCollection({ contractAdd: params.address });
+          if (!fetchedCollectionInfo) {
+            setError("Collection not found. Please check the contract address.");
+            return;
+          }
+          setCollectionInfo(fetchedCollectionInfo);
+          setError(null);
+        } catch (err) {
+          setError(`Failed to load collection: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        }
       }
     };
     fetchCollection();
@@ -250,6 +260,19 @@ export default function MintNFTPage({ params }: { params: { address: string } })
         <Link href="/create" className="flex items-center font-bold mb-6 hover:underline">
           <ArrowLeft className="h-4 w-4 mr-1" /> Back to home
         </Link>
+
+        {/* Error Display */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-100 border-2 border-red-500 rounded-lg">
+            <div className="flex items-center">
+              <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
+              <div>
+                <h3 className="font-bold text-red-800">Error</h3>
+                <p className="text-red-700">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center gap-4 mb-8">
           <div className="h-16 w-16 rounded-md overflow-hidden relative border-2 border-black">

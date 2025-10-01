@@ -104,8 +104,10 @@ export async function getCurrentCollection({ contractAdd }: { contractAdd: strin
         getCollectionMarketplaceInfo(contractAdd)
       ]);
     } catch (error) {
-      throw new Error(`Failed to fetch contract data: ${error instanceof Error ? error.message : String(error)}`);
+      console.error(`Failed to fetch contract data: ${error instanceof Error ? error.message : String(error)}`);
+      return null;
     }
+    
 
     if (!contractMetadataURI) {
       [contractName, contractSymbol] = await Promise.all([
@@ -135,6 +137,10 @@ export async function getCurrentCollection({ contractAdd }: { contractAdd: strin
   
       contractName = metadata.name;
       contractSymbol = metadata.symbol;
+    }
+
+    if (!contractName || !contractSymbol) {
+      return null;
     }
 
    
@@ -178,29 +184,37 @@ export async function listNFTs({ contractAdd, start, count }: { contractAdd: str
     address: contractAdd,
   });
 
-  const issingleNFT = await isERC721({ contract });
-  const ismultiNFT = await isERC1155({ contract });
+  if (!contract) {
+    throw new Error("Failed to get contract");
+  }
 
-    if (issingleNFT) {
-        const nft = await getNFTs721({
-        contract,
-        start,
-        count,
-        useIndexer: true
-        });
-    
-        return nft;
-    }
-    else if (ismultiNFT) {
-        const nft = await getNFTs1155({
-        contract,
-        start,
-        count
-        });
-    
-        return nft;
-    }
+  try {
+    const issingleNFT = await isERC721({ contract });
+    const ismultiNFT = await isERC1155({ contract });
 
+      if (issingleNFT) {
+          const nft = await getNFTs721({
+          contract,
+          start,
+          count,
+          useIndexer: true
+          });
+      
+          return nft;
+      }
+      else if (ismultiNFT) {
+          const nft = await getNFTs1155({
+          contract,
+          start,
+          count
+          });
+      
+          return nft;
+    }
+  } catch (error) {
+    console.error("Error in listNFTs:", error);
+    throw error;
+  }
     return null;
 }
 
@@ -610,10 +624,13 @@ export async function listCreatedContractsByAddress(address: string): Promise<Co
   const contractDetails = await Promise.all(
     contracts.map(async (contract: { contractAddress: string }) => {
       const contractInstance = await getCurrentCollection({ contractAdd: contract.contractAddress });
+      if (!contractInstance) {
+        return null;
+      }
       return contractInstance; 
     })
   );
 
-  return contractDetails;
+  return contractDetails.filter(contract => contract !== null);
 }
 
