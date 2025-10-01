@@ -18,10 +18,10 @@ import { getContract, PreparedTransaction } from "thirdweb";
 export const NFTBuyActions: React.FC<{
   isOwner: boolean;
   marketplaceInfo: MarketplaceInfo;
-  contractAddress: string;
+  marketplaceContractAddress: string;
   assetContract: string;
   tokenId: string;
-}> = ({ isOwner, marketplaceInfo, contractAddress, assetContract, tokenId }) => {
+}> = ({ isOwner, marketplaceInfo, marketplaceContractAddress, assetContract, tokenId }) => {
   useThirdwebWallet();
   const thirdwebAccount = useActiveAccount();
   const router = useRouter();
@@ -79,7 +79,7 @@ export const NFTBuyActions: React.FC<{
   };
 
   const handleMakeOffer = async () => {
-      const tx = await makeOffer(thirdwebAccount, marketplaceInfo.collection.address, marketplaceInfo.nft.id, offerDetails.amount, new Date(offerDetails.expiration));
+      const tx = await makeOffer(thirdwebAccount, assetContract, BigInt(tokenId), offerDetails.amount, new Date(offerDetails.expiration));
       
      //const approveTx = await getApprovalForTransaction({ transaction: tx, account: thirdwebAccount! });
       //console.log("approveTx: ", approveTx);
@@ -144,7 +144,7 @@ export const NFTBuyActions: React.FC<{
       )}
 
       <ListForSaleDialog isOpen={isSaleDialogOpen} onClose={() => setIsSaleDialogOpen(false)} assetContract={assetContract} tokenId={tokenId} />
-      <CreateAuctionDialog isOpen={isAuctionDialogOpen} onClose={() => setIsAuctionDialogOpen(false)} contractAddress={contractAddress} assetContract={assetContract} tokenId={tokenId} />
+      <CreateAuctionDialog isOpen={isAuctionDialogOpen} onClose={() => setIsAuctionDialogOpen(false)} contractAddress={marketplaceContractAddress} assetContract={assetContract} tokenId={tokenId} />
 
       {/* Bid Dialog */}
       <Dialog open={isBidDialogOpen} onOpenChange={setIsBidDialogOpen}>
@@ -208,7 +208,7 @@ export const NFTBuyActions: React.FC<{
             <TransactionButton
             className="bg-purple-500 hover:bg-purple-600 text-white"
             payModal={false}
-            transaction={() => makeOffer(thirdwebAccount, marketplaceInfo.collection.address, marketplaceInfo.nft.id, offerDetails.amount, new Date(offerDetails.expiration))}
+            transaction={() => makeOffer(thirdwebAccount, assetContract, BigInt(tokenId), offerDetails.amount, new Date(offerDetails.expiration))}
             onTransactionSent={() => {
               alert("Offer made successfully!");
               setIsOfferDialogOpen(false);

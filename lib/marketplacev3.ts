@@ -239,7 +239,10 @@ export async function getAllValidListingsWithProfile() {
   const listingsWithProfiles: Array<ListingWithProfile> = await Promise.all(
     allListingsAndAuctions.map(async (listing) => {
       try {
-        const profile = await getProfileByAddress(listing.creatorAddress);
+        let profile = await getProfileByAddress(listing.creatorAddress);
+        if (Array.isArray(profile)) {
+          profile = profile[0]; //todo: pensar um jeito melhor de escolher qual profile usar
+        }
         return {
           ...listing,
           creatorProfile: profile?.name || 'Unknown Creator', // Add profile name or fallback

@@ -60,7 +60,10 @@ export default function FeaturedNFTs({ nfts }: { nfts: DirectListing[] }) {
       for (const nft of nfts) {
         if (nft.creatorAddress && !fetchedNames[nft.creatorAddress]) {
           try {
-            const profile = await getProfileByAddress(nft.creatorAddress);
+            let profile = await getProfileByAddress(nft.creatorAddress);
+            if (Array.isArray(profile)) {
+              profile = profile[0]; //todo: pensar um jeito melhor de escolher qual profile usar
+            }
             fetchedNames[nft.creatorAddress] = profile?.name || 'Unknown Creator';
           } catch (error) {
             console.error(`Failed to fetch profile for address ${nft.creatorAddress}:`, error);

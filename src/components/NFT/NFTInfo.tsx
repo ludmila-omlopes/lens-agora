@@ -252,7 +252,7 @@ export default function NFTInfo({ nft, marketplaceInfo, isOwner, buttonsRef, col
         <NFTBuyActions
           isOwner={isOwner} 
           marketplaceInfo={marketplaceInfo}
-          contractAddress={marketplaceContractAddress}
+          marketplaceContractAddress={marketplaceContractAddress}
           assetContract={collection.address}
           tokenId={nft.id.toString()}
         />
