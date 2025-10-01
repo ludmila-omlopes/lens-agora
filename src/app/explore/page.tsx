@@ -8,7 +8,7 @@ export const metadata = {
 };
 
 export default async function ExplorePage() {
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NEXT_PUBLIC_LENSNETWORK_ENVIRONMENT === "main") {
     return redirect("/"); //isso aqui parece que não está funcionando
   }
   const listings = await getAllValidListingsWithProfile();

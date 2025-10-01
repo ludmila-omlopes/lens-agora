@@ -15,7 +15,7 @@ const contractAddress721 = "0x35d4AdfB8Bb4Bb16051D9e1b7784E8715F6f9ae5";
 
 
 export default async function NFTDetailsPage({ params }: { params: { address: string, id: string } }) {
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NEXT_PUBLIC_LENSNETWORK_ENVIRONMENT === "main") {
     return redirect("/"); 
   }
  const nft = await getCurrentNFT({ contractAdd: params.address, tokenId: BigInt(params.id) });

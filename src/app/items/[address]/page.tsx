@@ -5,7 +5,7 @@ import CollectionClient from "./collectionClient";
 import { notFound, redirect } from "next/navigation";
 
 export default async function CollectionPage({ params }: { params: { address: string, id: string } }) {
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NEXT_PUBLIC_LENSNETWORK_ENVIRONMENT === "main") {
     return redirect("/");
   }
  const collection = await getCurrentCollection({ contractAdd: params.address });

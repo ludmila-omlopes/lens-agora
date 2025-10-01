@@ -3,7 +3,7 @@ import { getCurrentCollection } from "../../../../lib/nfts";
 import { notFound, redirect } from "next/navigation";
 
 export default async function ContractDetailsPage({ params }: { params: { address: string } }) {
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NEXT_PUBLIC_LENSNETWORK_ENVIRONMENT === "main") {
     return redirect("/"); 
   }
 

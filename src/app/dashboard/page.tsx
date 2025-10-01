@@ -4,7 +4,7 @@ import { thirdwebClient } from "../../../lib/client/thirdwebClient";
 import { notFound, redirect } from "next/navigation";
 
 export default function DashboardPage() {
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NEXT_PUBLIC_LENSNETWORK_ENVIRONMENT === "main") {
     return redirect("/"); 
   }
   //const deployedContracts = listDeployedContractsByAddress({ address: '0x1234...5678' })

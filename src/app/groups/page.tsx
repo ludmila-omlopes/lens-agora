@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 }
 
 export default function GroupsPage() {
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NEXT_PUBLIC_LENSNETWORK_ENVIRONMENT === "main") {
     return redirect("/"); 
   }
   return (
