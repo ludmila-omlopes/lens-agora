@@ -69,6 +69,13 @@ export type ListingWithProfile = (DirectListing | EnglishAuction) & {
     creatorProfile: string;
   };
 
+export type NFTWithMarketplaceInfo = {
+    nft: NFT;
+    directListing?: DirectListing;
+    auction?: EnglishAuction;
+    creatorProfile?: string;
+  };
+
 
   export enum ActivityType {
     NewListing = "NEW_LISTING",
@@ -126,4 +133,8 @@ export type ListingWithProfile = (DirectListing | EnglishAuction) & {
   export type erc1155NFT = {
     legacyNFT: NFT;
     owners: string[];
+  }
+
+  export type NFTGeneral = NFT & {
+    ownersList?: string[]; // For ERC1155 tokens, contains list of owners
   }

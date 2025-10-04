@@ -132,7 +132,7 @@ export default function NFTInfo({ nft, marketplaceInfo, isOwner, buttonsRef, col
             <div className="flex flex-wrap gap-1">
               {ntOwnerProfiles.slice(0, 3).map((profile, index) => (
                 <span key={index}>
-                  <Link href={profile?.url || "#"} className="font-bold hover:underline">
+                  <Link href={profile.url } className="font-bold hover:underline">
                     {profile?.name || "Unknown"}
                   </Link>
                   {index < Math.min(ntOwnerProfiles.length, 3) - 1 && ", "}

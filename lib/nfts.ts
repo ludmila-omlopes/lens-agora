@@ -9,18 +9,19 @@ import { isERC721 } from "thirdweb/extensions/erc721";
 import { isERC1155 } from "thirdweb/extensions/erc1155";
 import { setClaimConditions } from "thirdweb/extensions/erc721";
 import { resolveScheme } from "thirdweb/storage";
-import { Collection, CollectionMarketplaceInfo, erc1155NFT, NFTCollection } from "./types";
+import { Collection, CollectionMarketplaceInfo, NFTCollection, NFTGeneral } from "./types";
 import { getCollectionMarketplaceInfo, marketplaceContractAddress } from "./marketplacev3";
-import { getERC1155OwnedByAddress, getERC721OwnedByAddress, getNFTOwners } from "./thirdwebUtils";
+import { getOwnedNFTsByAddress, getNFTOwners } from "./thirdwebUtils";
 import { addDeployedContract, listDeployedContractsByAddress } from "./db";
 import { isNullish } from "@apollo/client/cache/inmemory/helpers";
 import { immutable, StorageClient } from "@lens-chain/storage-client";
 import { upload } from "thirdweb/storage";
 import { list } from "postcss";
-import { getLastLoggedAccountByWalletAddress } from "./lensProtocolUtils";
+import { getLastLoggedAccountByWalletAddress } from "./profileUtils";
 import { sepolia } from "thirdweb/chains";
 
-export async function getCurrentNFT({ contractAdd, tokenId }: { contractAdd: string, tokenId: bigint }) {
+export async function getCurrentNFT({ contractAdd, tokenId }: { contractAdd: string, tokenId: bigint }): Promise<NFTGeneral | null> {
+  //todo: adaptar esse metodo pra usar o do insight, ja que nao precisa ficar testando o tipo
    const contract = getContract({
      client: thirdwebClientServer,
      chain: activeChain,
@@ -37,18 +38,17 @@ export async function getCurrentNFT({ contractAdd, tokenId }: { contractAdd: str
        includeOwner: true
      });
 
-     console.log("contract: ", contract);
-
-    //fazendo isso aqui pq o owner não está sendo retornado pelo getNFT721
+   //fazendo isso aqui pq o owner não está sendo retornado pelo getNFT721
      const data = await readContract({
       contract,
       method: "function ownerOf(uint256 tokenId) view returns (address)",
       params: [tokenId],
     });
 
-    nft.owner = data;
+   nft.owner = data;
 
-     return nft;
+     // Return as NFTGeneral (ERC721 doesn't need ownersList)
+     return nft as NFTGeneral;
    }
    else if (ismultiNFT) {
      const nft = await getNFT1155({
@@ -58,15 +58,15 @@ export async function getCurrentNFT({ contractAdd, tokenId }: { contractAdd: str
 
      const data = await getNFTOwners(contractAdd, tokenId.toString());
      const owners = data.data.find((chain_id: { chain_id: string; }) => chain_id.chain_id === activeChain.id.toString()).owner_addresses;
-     const finalNFT = {
-      legacyNFT: nft,
-      owners: owners
-     } as erc1155NFT;
+     
+     // Return as NFTGeneral with ownersList for ERC1155
+     const nftGeneral: NFTGeneral = {
+       ...nft,
+       ownersList: owners
+     };
 
-     return finalNFT;
+     return nftGeneral;
    }
-
-
 
     return null;
 }
@@ -125,7 +125,6 @@ export async function getCurrentCollection({ contractAdd }: { contractAdd: strin
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         metadata = await response.json();
-        console.log("metadata: ", metadata);
       } catch (error) {
         throw new Error(`Failed to fetch metadata: ${error instanceof Error ? error.message : String(error)}`);
       }
@@ -368,12 +367,7 @@ export function getNFTMediaURL(nft: NFT) {
     }
 
     if (nft.metadata && nft.metadata.image) {
-      try {
-        return resolveScheme({ uri: nft.metadata.image, client: thirdwebClientServer });
-      } catch (error) {
-        console.error("Error resolving NFT image URI:", error);
-        return "/logo1.png";
-      }
+      return resolveScheme({ uri: nft.metadata.image, client: thirdwebClientServer });
     }
     return "/logo1.png";
   } catch (error) {
@@ -412,47 +406,37 @@ export async function approveNFT(nft: NFT, nftcontract: string, account: any) {
 }
 
 export async function listNFTsOwnedBy(address: string, fetchCreatorsSocialAccounts: boolean = false): Promise<NFTCollection[]> {
-  try {
+
     if (!address) {
       throw new Error("Address is required");
     }
 
-    const [erc1155, erc721] = await Promise.all([
-      getERC1155OwnedByAddress(address),
-      getERC721OwnedByAddress(address)
-    ]).catch(error => {
-      throw new Error(`Failed to fetch owned NFTs: ${error.message}`);
+    const ownedNFTs = await getOwnedNFTsByAddress(address)
+    
+    if (!ownedNFTs) {
+      throw new Error("Failed to fetch owned NFTs");
+    }
+  
+    // Group NFTs by collection address to avoid duplicate collection fetches
+    const nftsByCollection = new Map<string, { token_address: string; token_id: string; }[]>();
+    
+    ownedNFTs.data.forEach((nft: { token_address: string; token_id: string; }) => {
+      const collectionAddress = nft.token_address;
+      if (!nftsByCollection.has(collectionAddress)) {
+        nftsByCollection.set(collectionAddress, []);
+      }
+      nftsByCollection.get(collectionAddress)!.push(nft);
     });
 
-    const ownedNFTs = [];
-    if (erc1155?.data) {
-      ownedNFTs.push(...erc1155.data);
-    }
-    if (erc721?.data) {
-      ownedNFTs.push(...erc721.data);
-    }
-
-    console.log("ownedNFTs: ", ownedNFTs);
-
-    const nftPromises = ownedNFTs.map(async nft => {
+    // Fetch collection data once per unique collection
+    const collectionPromises = Array.from(nftsByCollection.keys()).map(async (collectionAddress) => {
       try {
-        const nftData = await getCurrentNFT({ 
-          contractAdd: nft.token_address, 
-          tokenId: BigInt(nft.token_id) 
-        });
-        console.log("nftData: ", nftData);
-
-        if (!nftData) {
-          throw new Error(`Failed to fetch NFT data for token ${nft.token_id}`);
-        }
-
         const collectionData = await getCurrentCollection({ 
-          contractAdd: nft.token_address 
+          contractAdd: collectionAddress 
         });
-        console.log("collectionData: ", collectionData);
 
         if (!collectionData) {
-          throw new Error(`Failed to fetch collection data for address ${nft.token_address}`);
+          throw new Error(`Failed to fetch collection data for address ${collectionAddress}`);
         }
 
         let creator = null;
@@ -464,11 +448,46 @@ export async function listNFTsOwnedBy(address: string, fetchCreatorsSocialAccoun
             });
         }
 
+        return {
+          collectionAddress,
+          collectionData,
+          creator
+        };
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          console.error(`Error fetching collection ${collectionAddress}: ${error.message}`);
+        } else {
+          console.error(`Error fetching collection ${collectionAddress}: ${error}`);
+        }
+        return null;
+      }
+    });
+
+    const collections = (await Promise.all(collectionPromises)).filter(collection => collection !== null);
+    const collectionMap = new Map(collections.map(c => [c!.collectionAddress, c!]));
+
+    // Process all NFTs with their respective collection data
+    const nftPromises = ownedNFTs.data.map(async (nft: { token_address: string; token_id: string; }) => {
+      try {
+        const nftData = await getCurrentNFT({ 
+          contractAdd: nft.token_address, 
+          tokenId: BigInt(nft.token_id) 
+        });
+
+        if (!nftData) {
+          throw new Error(`Failed to fetch NFT data for token ${nft.token_id}`);
+        }
+
+        const collectionInfo = collectionMap.get(nft.token_address);
+        if (!collectionInfo) {
+          throw new Error(`Collection data not found for address ${nft.token_address}`);
+        }
+
         return { 
           nft: nftData, 
-          collection: collectionData, 
-          collectionAddress: collectionData.address, 
-          creatorLensAccount: creator 
+          collection: collectionInfo.collectionData, 
+          collectionAddress: collectionInfo.collectionData.address, 
+          creatorLensAccount: collectionInfo.creator 
         } as NFTCollection;
       } catch (error: unknown) {
         if (error instanceof Error) {
@@ -481,25 +500,20 @@ export async function listNFTsOwnedBy(address: string, fetchCreatorsSocialAccoun
     });
 
     const nfts = (await Promise.all(nftPromises)).filter(nft => nft !== null);
-    console.log("owned nfts: ", nfts);
     return nfts;
 
-  } catch (error) {
-    console.error("Error in listNFTsOwnedBy:", error);
-    throw error;
-  }
-}
+  } 
 
 export async function isNFTOwnedByAddress(address: string, nft: NFT, collectionAddress: string) {
   if (!address) {
     return false;
   }
   if(nft && nft.type === "ERC721") {
-    const ownedNFTs = await getERC721OwnedByAddress(address); //nao pega se tiver listado em auction
+    const ownedNFTs = await getOwnedNFTsByAddress(address); //nao pega se tiver listado em auction
     return ownedNFTs?.data.some((ownedNFT: { token_id: string; token_address: string; }) => ownedNFT.token_id === Number(nft.id).toString() && getAddress(ownedNFT.token_address) === getAddress(collectionAddress));
   }
   else if(nft && nft.type === "ERC1155") { //como 1155 são multieditions, um único id tem vários owners
-    const ownedNFTs = await getERC1155OwnedByAddress(address);
+    const ownedNFTs = await getOwnedNFTsByAddress(address);
     return ownedNFTs?.data.some((ownedNFT: { tokenId: string; tokenAddress: string; }) => ownedNFT.tokenId === nft.id.toString() && getAddress(ownedNFT.tokenAddress) === getAddress(collectionAddress)); 
   }
   return false;
@@ -551,8 +565,6 @@ async function createMultieditionContract(account: any, name: string, descriptio
       royaltyBps: undefined,
       trustedForwarders: undefined,
     }});
-    
-    console.log("contractAddress: ", contractAddress);
 
     const contract = getContract({
       chain: activeChain,
@@ -560,7 +572,6 @@ async function createMultieditionContract(account: any, name: string, descriptio
       client: thirdwebClient,
     });
     
-    console.log("contract: ", contract);
     
       /*  const verificationResult = await verifyContract({
         contract,
@@ -597,7 +608,6 @@ async function createSingleEditionContract(account: any, name: string, descripti
       trustedForwarders: undefined,
     }});
     
-    console.log("contractAddress: ", contractAddress);
 
     const contract = getContract({
       chain: activeChain,
@@ -605,7 +615,6 @@ async function createSingleEditionContract(account: any, name: string, descripti
       client: thirdwebClient,
     });
     
-    console.log("contract: ", contract);
     
       /*  const verificationResult = await verifyContract({
         contract,

@@ -21,6 +21,7 @@ export default function OwnedNFTsTab({ address }: { address: string }) {
       setLoading(true);
       try {
         const owned = await listNFTsOwnedBy(address, true);
+        console.log("owned", owned)
         if (owned) {
           setOwnedNFTs(owned);
         }
@@ -53,10 +54,10 @@ export default function OwnedNFTsTab({ address }: { address: string }) {
           {ownedNFTs.map((nft) => (
             <ProfileNFTCard
               key={nft.nft.tokenURI}
-              collectionAddress={nft.collectionAddress}
+              collectionAddress={nft.collection?.address || ""}
               id={nft.nft.id.toString()}
               image={getNFTMediaURL(nft.nft) || "/placeholder.svg"}
-              title={nft.nft.metadata.name || "Untitled"}
+              title={nft.nft.metadata.name || nft.collection?.name|| "Untitled"}
               //price={nft.price || undefined}
               creator={{ name: nft.creatorLensAccount?.username?.localName || formatAddress(nft.collection?.owner!) || "Unknown", 
                 avatar: nft.creatorLensAccount?.metadata?.picture || "/placeholder.png" }}

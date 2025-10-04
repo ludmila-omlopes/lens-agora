@@ -111,7 +111,6 @@ export async function cancelListing(account: any, listingId: bigint) {
 
 
 async function getCurrentListingForNFT(nft: NFT, nftAddress: string) {
-  console.log("getCurrentListingForNFT: ", nft, nftAddress);
   //talvez seja melhor indexar
   const result = await totalListings({
     contract,
@@ -159,9 +158,7 @@ export async function getNFTMarketplaceInfo(nft: NFT, nftAddress: string) {
   const marketplaceInfo = {} as MarketplaceInfo;
 
   const currentListing = await getCurrentListingForNFT(nft, nftAddress);
-  console.log("currentListing: ", currentListing);
   const currentAuction = await getCurrentAuctionForNFT(nft, nftAddress);
-  console.log("currentAuction: ", currentAuction);
   
   marketplaceInfo.listing = currentListing!;
   marketplaceInfo.nftAddress = nft.tokenAddress;
@@ -231,31 +228,39 @@ async function getListingById(listingId: bigint) {
 }
 
 export async function getAllValidListingsWithProfile() {
-  //todo: trocar pro profile do Lens
+
   const listings = await getAllValidListings({ contract });
   const auctions = await getAllValidAuctions({ contract });
   const allListingsAndAuctions = [...listings, ...auctions];
 
-  const listingsWithProfiles: Array<ListingWithProfile> = await Promise.all(
-    allListingsAndAuctions.map(async (listing) => {
-      try {
-        let profile = await getProfileByAddress(listing.creatorAddress);
-        if (Array.isArray(profile)) {
-          profile = profile[0]; //todo: pensar um jeito melhor de escolher qual profile usar
-        }
-        return {
-          ...listing,
-          creatorProfile: profile?.name || 'Unknown Creator', // Add profile name or fallback
-        } as ListingWithProfile;
-      } catch (error) {
-        console.error(`Failed to fetch profile for address ${listing.creatorAddress}:`, error);
-        return {
-          ...listing,
-          creatorProfile: 'Unknown Creator', // Fallback if profile fetch fails
-        } as ListingWithProfile;
-      }
-    })
-  );
+  // Get unique creator addresses
+  const uniqueAddresses = [...new Set(allListingsAndAuctions.map(listing => listing.creatorAddress))];
+  
+  // Fetch all profiles in a single call
+  let profiles: any[] = [];
+  try {
+    const profilesResult = await getProfileByAddress(uniqueAddresses);
+    profiles = Array.isArray(profilesResult) ? profilesResult : [profilesResult];
+  } catch (error) {
+    console.error('Failed to fetch profiles:', error);
+  }
+
+  // Create a map for quick profile lookup
+  const profileMap = new Map();
+  profiles.forEach((profile, index) => {
+    if (profile && uniqueAddresses[index]) {
+      profileMap.set(uniqueAddresses[index], profile);
+    }
+  });
+
+  // Map listings with their corresponding profiles
+  const listingsWithProfiles: Array<ListingWithProfile> = allListingsAndAuctions.map((listing) => {
+    const profile = profileMap.get(listing.creatorAddress);
+    return {
+      ...listing,
+      creatorProfile: profile?.name || 'Unknown Creator',
+    } as ListingWithProfile;
+  });
 
   return listingsWithProfiles;
 }
@@ -270,8 +275,6 @@ export async function cancelAuction(account: any, auctionId: bigint) {
 }
 
 export async function bidInAuction(account: any, auctionId: bigint, bidAmount: string) {
-  console.log("bidInAuction: ", auctionId, bidAmount);
-  console.log("contract: ", contract);
   const transaction = callBidInAuction({
     contract,
     auctionId: auctionId,

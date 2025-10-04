@@ -15,11 +15,11 @@ const contractAddress721 = "0x35d4AdfB8Bb4Bb16051D9e1b7784E8715F6f9ae5";
 
 
 export default async function NFTDetailsPage({ params }: { params: { address: string, id: string } }) {
-  if (process.env.NEXT_PUBLIC_LENSNETWORK_ENVIRONMENT === "main") {
+  if (process.env.NEXT_PUBLIC_LENSNETWORK_ENVIRONMENT === "main" && process.env.NODE_ENV !== "development") {
     return redirect("/"); 
   }
  const nft = await getCurrentNFT({ contractAdd: params.address, tokenId: BigInt(params.id) });
- console.log("nft: ", nft);
+
  //avisar o thirdweb que owner tá vindo nulo
  if (!nft) {
    return <div>NFT not found</div>;

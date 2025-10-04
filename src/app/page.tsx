@@ -30,7 +30,7 @@ export default function Home() {
     fetchFeaturedNFTs()
   }, [])
 
-  if (process.env.NEXT_PUBLIC_LENSNETWORK_ENVIRONMENT === "main") {
+  if (process.env.NEXT_PUBLIC_LENSNETWORK_ENVIRONMENT === "main" && process.env.NODE_ENV !== "development") {
     return <LaunchingSoonPage />
   }
 

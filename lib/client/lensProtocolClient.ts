@@ -11,10 +11,16 @@ export const lensPublicClient = PublicClient.create({
   origin: "https://myappdomain.xyz", // Ignored if running in a browser
 });
 
+export const lensServerClient = PublicClient.create({
+  environment: USE_TESTNET ? testnet : mainnet,
+  storage: storage,
+  origin: "https://myappdomain.xyz", // Ignored if running in a browser
+  apiKey: process.env.LENS_API_KEY || "",
+});
+
 // Keep mainnet client for specific mainnet operations
 export const lensPublicMainnetClient = PublicClient.create({
   environment: mainnet,
   storage: storage,
   origin: "https://myappdomain.xyz", // Ignored if running in a browser
 });
-

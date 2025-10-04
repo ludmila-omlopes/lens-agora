@@ -8,11 +8,12 @@ const methods = ['events/', 'transactions/', 'tokens/erc20/', 'tokens/erc721/', 
 
 async function callThirdwebInsight(url: string) {
     try {
-        const response = await fetch(url, {
+        const response = await fetch(url, { 
             headers: {
                 'x-client-id': process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID!
             }
         });
+
         const data = await response.json();
         return data;
     } catch (error) {
@@ -20,13 +21,8 @@ async function callThirdwebInsight(url: string) {
     }
 }
 
-export async function getERC1155OwnedByAddress(address: string) {
-    const url = baseUrl + 'tokens/erc1155/' + address;
-    return callThirdwebInsight(url);
-}
-
-export async function getERC721OwnedByAddress(address: string) {
-    const url = baseUrl + 'tokens/erc721/' + address;
+export async function getOwnedNFTsByAddress(address: string) {
+    const url = baseUrl + 'nfts/balance/' + address + '?&metadata=true&resolve_metadata_links=true';
     return callThirdwebInsight(url);
 }
 

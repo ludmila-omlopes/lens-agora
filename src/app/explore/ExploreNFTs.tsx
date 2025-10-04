@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useInView } from 'react-intersection-observer';
-import ListedNFTs from './ListedNFTs';
-import NFTFilterCard from './NFTFilterCard';
+import ListedNFTs from '../../components/ListedNFTs';
+import NFTFilterCard from '../../components/NFTFilterCard';
 import { Button } from '@/components/ui/button';
-import { ListingWithProfile } from '../../lib/types';
+import { ListingWithProfile } from '../../../lib/types';
 
 export default function ExploreNFTs({ listings }: { listings: ListingWithProfile[] }) {
   const [nfts, setNfts] = useState(listings.slice(0, 20)); // Initialize with the first 20 listings

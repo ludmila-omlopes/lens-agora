@@ -9,7 +9,7 @@ import { uri } from "@lens-protocol/client"
 import { resolveScheme } from "thirdweb/storage"
 import { thirdwebClient } from "../../../../../lib/client/thirdwebClient"
 import { NFT } from "thirdweb"
-import { ActivityItem, Collection, erc1155NFT, MarketplaceInfo } from "../../../../../lib/types"
+import { ActivityItem, Collection, NFTGeneral, MarketplaceInfo } from "../../../../../lib/types"
 import { useNFTDetails } from "@/hooks/useNFTDetails"
 import NFTImage from "@/components/NFT/NFTImage"
 import NFTInfo from "@/components/NFT/NFTInfo"
@@ -18,14 +18,11 @@ import CollectionInfo from "@/components/NFT/CollectionInfo"
 import SocialActions from "@/components/NFT/SocialActions"
 import NFTOffersSection from "@/components/NFT/NFTOffersSection"
 
-export default function NFTDetails( {nft, collection, marketplaceInfo, activityItems } : {nft: NFT | erc1155NFT, collection: Collection, marketplaceInfo: MarketplaceInfo, activityItems: ActivityItem[]} ) {
+export default function NFTDetails( {nft, collection, marketplaceInfo, activityItems } : {nft: NFTGeneral, collection: Collection, marketplaceInfo: MarketplaceInfo, activityItems: ActivityItem[]} ) {
   const { sessionClient } = useLensSession()
 
-  let owners = [] as string[];
-  if ('legacyNFT' in nft) {
-    owners = nft.owners
-    nft = nft.legacyNFT as NFT
-  }
+  // Get owners list for ERC1155 tokens
+  const owners = nft.ownersList || [];
 
   let resolvedImageurl = ""
   try { 

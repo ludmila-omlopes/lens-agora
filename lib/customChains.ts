@@ -12,7 +12,7 @@ export const lensTesnet: Chain = {
     default: { http: ["https://rpc.testnet.lens.dev"] },
   },
   blockExplorers: {
-    default: { name: "Lens", url: "https://block-explorer.testnet.lens.dev/" }
+    default: { name: "Lens", url: "https://explorer.testnet.lens.xyz" }
   },
   testnet: true,
 };

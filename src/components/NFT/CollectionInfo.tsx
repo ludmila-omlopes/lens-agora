@@ -85,7 +85,7 @@ export default function CollectionInfo({ nftId, collection }: CollectionInfoProp
             </div>
             <div>
               <p className="text-sm text-gray-600 font-bold">Artist</p>
-              <Link href={""} className="font-bold hover:underline">
+              <Link href={"/profile/" + collection.owner} className="font-bold hover:underline">
                 {artistProfile?.name || formatAddress(collection.owner)}
               </Link>
             </div>

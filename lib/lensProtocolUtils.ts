@@ -3,6 +3,7 @@ import { currentSession, fetchAccount, fetchAccounts, fetchAccountsAvailable, fe
   fetchAccountGraphStats, fetchPost, fetchPostReferences, fetchPosts, post, 
   lastLoggedInAccount} from "@lens-protocol/client/actions";
 import { lensPublicClient, lensPublicMainnetClient } from "./client/lensProtocolClient";
+import { lensServerClient } from "./client/lensServerClient";
 import { gql } from '@apollo/client';
 import { useMutation } from '@apollo/client';
 import { signMessage } from '@wagmi/core'
@@ -336,10 +337,25 @@ export async function getCommentsForNFT(
 
 export async function getLensAccount(lensUsername: string)
 {
-  const result = await fetchAccount(lensPublicClient, {
+  const result = await fetchAccount(lensServerClient, {
     username: {
       localName: lensUsername,
     },
+  });
+  
+  if (result.isErr()) {
+    console.error(result.error);
+    return null;
+  }
+  
+  const account = result.value;
+  return account;
+}
+
+export async function getLensAccountByAddress(lensAddress: string)  
+{
+  const result = await fetchAccount(lensServerClient, {
+    address: evmAddress(lensAddress),
   });
   
   if (result.isErr()) {
@@ -358,7 +374,7 @@ export async function getAccountStats(lensUsername: string) {
     return null;
   }
 
-  const result = await fetchAccountGraphStats(lensPublicClient, {
+  const result = await fetchAccountGraphStats(lensServerClient, {
     account: account.address,
   });
 
@@ -376,7 +392,7 @@ export async function getIsFollowingStatus(lensUsername: string, loggedAccountAd
     return null;
   }
 
-  const result = await fetchFollowStatus(lensPublicClient, {
+  const result = await fetchFollowStatus(lensServerClient, {
     pairs: [
       {
         account: account.address,
@@ -394,16 +410,3 @@ export async function getIsFollowingStatus(lensUsername: string, loggedAccountAd
   return isFollowing;
 }
 
-export async function getLastLoggedAccountByWalletAddress(walletAddress: string) {
-  
-  const result = await lastLoggedInAccount(lensPublicClient, {
-    address: evmAddress(walletAddress),
-  });
-
-  if (result.isErr()) {
-    console.error(result.error);
-    return null;
-  }
-
-  return result.value;
-}

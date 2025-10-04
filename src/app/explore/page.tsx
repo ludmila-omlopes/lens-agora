@@ -1,6 +1,6 @@
-import ExploreNFTs from "@/components/ExploreNFTs";
 import { getAllValidListingsWithProfile } from "../../../lib/marketplacev3";
 import { notFound, redirect } from "next/navigation";
+import ExploreNFTs from "./ExploreNFTs";
 
 export const metadata = {
   title: "Explore NFTs | Lens Agora Marketplace",
@@ -8,8 +8,8 @@ export const metadata = {
 };
 
 export default async function ExplorePage() {
-  if (process.env.NEXT_PUBLIC_LENSNETWORK_ENVIRONMENT === "main") {
-    return redirect("/"); //isso aqui parece que não está funcionando
+  if (process.env.NEXT_PUBLIC_LENSNETWORK_ENVIRONMENT === "main" && process.env.NODE_ENV !== "development") {
+    return redirect("/");
   }
   const listings = await getAllValidListingsWithProfile();
 
