@@ -622,6 +622,7 @@ export async function fetchNftActivity(
   });
 
   let items = logs.map((l: any) => normalizeLog(l)).filter((x: any) => !!x) as ActivityItem[];
+  console.log("items: ", items);
 
   // Client-side token filter
   if (scope.tokenId !== undefined) {

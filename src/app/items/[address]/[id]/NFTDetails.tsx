@@ -10,6 +10,7 @@ import { resolveScheme } from "thirdweb/storage"
 import { thirdwebClient } from "../../../../../lib/client/thirdwebClient"
 import { NFT } from "thirdweb"
 import { ActivityItem, Collection, NFTGeneral, MarketplaceInfo } from "../../../../../lib/types"
+import { Address } from "thirdweb"
 import { useNFTDetails } from "@/hooks/useNFTDetails"
 import NFTImage from "@/components/NFT/NFTImage"
 import NFTInfo from "@/components/NFT/NFTInfo"
@@ -118,7 +119,11 @@ export default function NFTDetails( {nft, collection, marketplaceInfo, activityI
           />
           
           {/* Activity feed */}
-          <ActivityFeed activityItems={activityItems} />
+          <ActivityFeed 
+            activityItems={activityItems} 
+            assetContract={nft.tokenAddress as Address}
+            tokenId={nft.id}
+          />
         </div>
 
         {/* Right sidebar - Collection info */}

@@ -8,17 +8,46 @@ import { formatAddress } from "../../../lib/profileUtils"
 import { fetchAccountsBulk } from "@lens-protocol/client/actions"
 import { lensPublicClient } from "../../../lib/client/lensProtocolClient"
 import { Account, evmAddress } from "@lens-protocol/client"
+import { Address } from "thirdweb"
+import { fetchNftActivity } from "../../../lib/marketplacev3"
 
 // Lazy load the detailed activity item component
 const ActivityItemComponent = lazy(() => import("./ActivityItem"))
 
 interface ActivityFeedProps {
-  activityItems: ActivityItem[]
+  activityItems?: ActivityItem[] // Made optional for client-side fetching
+  assetContract?: Address
+  tokenId?: bigint
 }
 
-export default function ActivityFeed({ activityItems }: ActivityFeedProps) {
+export default function ActivityFeed({ activityItems: initialActivityItems, assetContract, tokenId }: ActivityFeedProps) {
   const [lensAccountMap, setLensAccountMap] = useState<Map<string, Account>>(new Map())
   const [loading, setLoading] = useState(true)
+  const [activityItems, setActivityItems] = useState<ActivityItem[]>(initialActivityItems || [])
+  const [activityLoading, setActivityLoading] = useState(false)
+
+  // Fetch activity data client-side if not provided
+  useEffect(() => {
+    const fetchActivity = async () => {
+      if (!assetContract || !tokenId || (initialActivityItems && initialActivityItems.length > 0)) return;
+      
+      setActivityLoading(true);
+      try {
+        const activity = await fetchNftActivity(
+          { assetContract, tokenId },
+          { fromBlock: 100000n } // Use recent block range
+        );
+        setActivityItems(activity);
+      } catch (error) {
+        console.error('Error fetching activity:', error);
+        setActivityItems([]);
+      } finally {
+        setActivityLoading(false);
+      }
+    };
+
+    fetchActivity();
+  }, [assetContract, tokenId, initialActivityItems]);
 
   // Extract unique addresses from activity items
   const uniqueAddresses = useMemo(() => 
@@ -61,11 +90,12 @@ export default function ActivityFeed({ activityItems }: ActivityFeedProps) {
     fetchLensAccounts()
   }, [uniqueAddresses])
 
-  if (loading) {
+  if (loading || activityLoading) {
     return (
       <div className="bg-gradient-to-br from-white to-[#E5E2F9] rounded-lg border-4 border-black p-6">
         <h2 className="text-2xl font-black mb-4 flex items-center">
           <Activity className="mr-2 h-6 w-6" /> Activity
+          {activityLoading && <span className="ml-2 text-sm text-gray-600">(Loading...)</span>}
         </h2>
         <div className="space-y-4">
           {[...Array(3)].map((_, index) => (
