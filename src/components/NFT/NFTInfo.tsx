@@ -2,56 +2,41 @@
 
 import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
-import { Heart, Share2, Flag, Activity, Layers } from "lucide-react"
+import { Heart, Share2, Flag, Layers } from "lucide-react"
 import { NFT } from "thirdweb"
-import { Collection, MarketplaceInfo, Profile } from "../../../lib/types"
+import { Collection, Profile } from "../../../lib/types"
 import { getProfileByAddress } from "../../../lib/profileUtils"
-import { NFTBuyActions } from "./NFTBuyActions"
-import { marketplaceContractAddress } from "../../../lib/marketplacev3"
+import { NFTDescription, NFTName } from "thirdweb/react"
 
 interface NFTInfoProps {
   nft: NFT
-  marketplaceInfo: MarketplaceInfo
-  isOwner: boolean
-  buttonsRef: React.RefObject<HTMLDivElement | null>
-  collection: Collection
+  collection?: Collection
   owners: string[]
 }
 
-export default function NFTInfo({ nft, marketplaceInfo, isOwner, buttonsRef, collection, owners }: NFTInfoProps) {
-  const [isLiked, setIsLiked] = useState(false)
+export default function NFTInfo({ nft, collection, owners }: NFTInfoProps) {
   const [ntOwnerProfiles, setNtOwnerProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Memoize the owners array and nft.owner to prevent unnecessary re-renders
-  const memoizedOwners = useMemo(() => owners, [owners])
-  const memoizedNftOwner = useMemo(() => nft.owner, [nft.owner])
+  // Create stable references for owners and nft.owner
+  const ownersString = useMemo(() => owners?.join(',') || '', [owners])
+  const nftOwnerString = useMemo(() => nft.owner || '', [nft.owner])
 
   const nftSocialInfo = {
     likes: 47,
     categories: ["Digital Art", "Surrealism", "3D", "Animation"],
   }
 
-  const auctionInfo = {
-    highestBid: {
-      amount: "1.45 ETH",
-      bidder: {
-        name: "NFTEnthusiast",
-        avatar: "/placeholder.svg?height=40&width=40",
-        link: "/user/nftenthusiast",
-      },
-    }
-  }
-
   useEffect(() => {
     const fetchOwnerProfiles = async () => {
       try {
+        setLoading(true)
         let profiles: Profile | Profile[] | null = null
         
-        if (memoizedOwners && memoizedOwners.length > 0) {
-          profiles = await getProfileByAddress(memoizedOwners)
-        } else if (memoizedNftOwner) {
-          profiles = await getProfileByAddress(memoizedNftOwner)
+        if (owners && owners.length > 0) {
+          profiles = await getProfileByAddress(owners)
+        } else if (nft.owner) {
+          profiles = await getProfileByAddress(nft.owner)
         }
         
         if (profiles) {
@@ -70,8 +55,9 @@ export default function NFTInfo({ nft, marketplaceInfo, isOwner, buttonsRef, col
         setLoading(false)
       }
     }
+    
     fetchOwnerProfiles()
-  }, [memoizedOwners, memoizedNftOwner])
+  }, [ownersString, nftOwnerString])
 
   if (loading) {
     return (
@@ -86,15 +72,18 @@ export default function NFTInfo({ nft, marketplaceInfo, isOwner, buttonsRef, col
   return (
     <div className="space-y-6">
       {/* Collection name */}
-      <Link
-        href={`/items/${collection.address}`}
-        className="inline-block bg-gradient-to-r from-[#D7D3F5] to-[#CFC9F2] px-4 py-2 rounded-md border-2 border-black font-bold hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
-      >
-        {collection.name}
-      </Link>
+      {collection && (
+        <Link
+          href={`/items/${collection.address}`}
+          className="inline-block bg-gradient-to-r from-[#D7D3F5] to-[#CFC9F2] px-4 py-2 rounded-md border-2 border-black font-bold hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+        >
+          {collection.name}
+        </Link>
+      )}
 
       {/* Title */}
-      <h1 className="text-4xl font-black mb-2">{nft.metadata.name!}</h1>
+      {/* <h1 className="text-4xl font-black mb-2">{nft.metadata.name!}</h1> */}
+      <h1 className="text-4xl font-black mb-2"><NFTName /></h1>
 
       {/* Multi-Edition indicator for ERC1155 */}
       {nft.type === "ERC1155" && nft.supply && (
@@ -157,10 +146,12 @@ export default function NFTInfo({ nft, marketplaceInfo, isOwner, buttonsRef, col
 
       {/* Description */}
       <div className="bg-gradient-to-br from-white to-[#F7F6FC] rounded-lg border-4 border-black p-6 mb-6">
-        <p className="text-lg mb-6">{nft.metadata.description}</p>
+        {/* <p className="text-lg mb-6">{nft.metadata.description}</p> */}
+        <NFTDescription className="text-lg" />
+        
 
         {/* Category tags */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 mt-6">
           {nftSocialInfo.categories.map((category, index) => (
             <Link
               key={index}
@@ -171,91 +162,6 @@ export default function NFTInfo({ nft, marketplaceInfo, isOwner, buttonsRef, col
             </Link>
           ))}
         </div>
-      </div>
-
-        {/* Auction info */}
-        {marketplaceInfo?.auction && (
-         <div className="bg-gradient-to-br from-[#FFF4E6] to-[#FFE4B5] rounded-lg border-4 border-black p-4 mb-4">
-           <h3 className="text-lg font-black mb-3 flex items-center">
-             <Activity className="mr-2 h-5 w-5" />
-             Auction Details
-           </h3>
-           <div className="grid grid-cols-2 gap-4 mb-4">
-             <div className="p-3 border-2 border-black rounded-md bg-white">
-               <p className="text-sm text-gray-600 font-bold">Minimum Bid</p>
-               <p className="font-black text-lg">
-                 {marketplaceInfo.auction.minimumBidCurrencyValue?.displayValue || "0"} {marketplaceInfo.auction.minimumBidCurrencyValue?.symbol || "ETH"}
-               </p>
-             </div>
-             <div className="p-3 border-2 border-black rounded-md bg-white">
-               <p className="text-sm text-gray-600 font-bold">Buyout Price</p>
-               <p className="font-black text-lg">
-                 {marketplaceInfo.auction.buyoutCurrencyValue?.displayValue || "0"} {marketplaceInfo.auction.buyoutCurrencyValue?.symbol || "ETH"}
-               </p>
-             </div>
-           </div>
-           <div className="grid grid-cols-2 gap-4">
-             <div className="p-3 border-2 border-black rounded-md bg-white">
-               <p className="text-sm text-gray-600 font-bold">Status</p>
-               <p className={`font-black text-lg ${
-                 marketplaceInfo.auction.status === 'ACTIVE' ? 'text-green-600' :
-                 marketplaceInfo.auction.status === 'COMPLETED' ? 'text-blue-600' :
-                 marketplaceInfo.auction.status === 'CANCELLED' ? 'text-red-600' :
-                 'text-gray-600'
-               }`}>
-                 {marketplaceInfo.auction.status}
-               </p>
-             </div>
-             <div className="p-3 border-2 border-black rounded-md bg-white">
-               <p className="text-sm text-gray-600 font-bold">Expires</p>
-               <p className="font-black text-lg">
-                 {new Date(Number(marketplaceInfo.auction.endTimeInSeconds) * 1000).toLocaleDateString()}
-               </p>
-               <p className="text-xs text-gray-500">
-                 {new Date(Number(marketplaceInfo.auction.endTimeInSeconds) * 1000).toLocaleTimeString()}
-               </p>
-             </div>
-           </div>
-         </div>
-       )}
-
-      {/* Current price/bid */}
-      {marketplaceInfo.auction && marketplaceInfo.auction.status !== "CANCELLED" && (
-        <div className="bg-gradient-to-br from-[#D7D3F5] to-[#CFC9F2] p-5 rounded-lg border-4 border-black">
-          <p className="text-sm font-bold text-gray-600">Current highest bid</p>
-          <div className="flex items-center justify-between">
-            <p className="text-3xl font-black">{auctionInfo.highestBid.amount}</p>
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full overflow-hidden relative border-2 border-black">
-                <img
-                  src={auctionInfo.highestBid.bidder.avatar || "/placeholder.svg"}
-                  alt={auctionInfo.highestBid.bidder.name}
-                  className="object-cover"
-                />
-              </div>
-              <Link href={auctionInfo.highestBid.bidder.link} className="font-bold text-sm hover:underline">
-                {auctionInfo.highestBid.bidder.name}
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {marketplaceInfo.listing && marketplaceInfo.listing.status !== "CANCELLED" && (
-        <div className="bg-gradient-to-br from-[#D7D3F5] to-[#CFC9F2] p-5 rounded-lg border-4 border-black flex items-center justify-between">
-          <p className="text-3xl font-black">{Number(marketplaceInfo.listing.pricePerToken) / 10 ** 18} GHO</p>
-        </div>
-      )}
-
-      {/* Action buttons */}
-      <div ref={buttonsRef}>
-        <NFTBuyActions
-          isOwner={isOwner} 
-          marketplaceInfo={marketplaceInfo}
-          marketplaceContractAddress={marketplaceContractAddress}
-          assetContract={collection.address}
-          tokenId={nft.id.toString()}
-        />
       </div>
     </div>
   )

@@ -26,7 +26,7 @@ export default function CollectionDetails({collectionContract, firstNFTs}: {coll
     const fetchMarketplaceInfo = async () => {
       const info: Record<string, MarketplaceInfo> = {}
       for (const nft of firstNFTs) {
-        const marketplaceInfo = await getNFTMarketplaceInfo(nft, collectionContract.address)
+        const marketplaceInfo = await getNFTMarketplaceInfo(collectionContract.address, nft.id)
         if (marketplaceInfo) {
           info[nft.id.toString()] = marketplaceInfo
         }

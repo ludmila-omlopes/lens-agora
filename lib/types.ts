@@ -23,6 +23,7 @@ export type MarketplaceInfo = {
     nftId: bigint;
     listing: DirectListing;
     auction: EnglishAuction;
+    winningBid:  any;
 };
 
 export type CollectionMarketplaceInfo = {

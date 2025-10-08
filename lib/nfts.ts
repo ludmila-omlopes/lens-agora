@@ -1,4 +1,4 @@
-import { getAddress, getContract, Insight, NFT, readContract, sendTransaction } from "thirdweb";
+import { getAddress, getContract, Insight, NFT, readContract, sendTransaction, ThirdwebContract } from "thirdweb";
 import { thirdwebClient, thirdwebClientServer } from "./client/thirdwebClient";
 import { getNFT as getNFT1155, getNFTs as getNFTs1155, mintTo as mintERC1155to, lazyMint as lazyMintERC1155, setApprovalForAll } from "thirdweb/extensions/erc1155";
 import { getNFT as getNFT721, getNFTs as getNFTs721, mintTo as mintERC721to, lazyMint as lazyMintERC721, approve, getAllOwners, getOwnedNFTs } from "thirdweb/extensions/erc721";
@@ -11,7 +11,7 @@ import { setClaimConditions } from "thirdweb/extensions/erc721";
 import { resolveScheme } from "thirdweb/storage";
 import { Collection, CollectionMarketplaceInfo, NFTCollection, NFTGeneral } from "./types";
 import { getCollectionMarketplaceInfo, marketplaceContractAddress } from "./marketplacev3";
-import { getOwnedNFTsByAddress, getNFTOwners } from "./thirdwebUtils";
+import { getNFTOwners, getOwnedNFTsByAddressInsight } from "./thirdwebUtils";
 import { addDeployedContract, listDeployedContractsByAddress } from "./db";
 import { isNullish } from "@apollo/client/cache/inmemory/helpers";
 import { immutable, StorageClient } from "@lens-chain/storage-client";
@@ -19,10 +19,11 @@ import { upload } from "thirdweb/storage";
 import { list } from "postcss";
 import { getLastLoggedAccountByWalletAddress } from "./profileUtils";
 import { sepolia } from "thirdweb/chains";
+import { fetchAlchemyAPI, mapAlchemyNFT } from "./alchemyUtils";
 
-export async function getCurrentNFT({ contractAdd, tokenId }: { contractAdd: string, tokenId: bigint }): Promise<NFTGeneral | null> {
+export async function getCurrentNFT({ contractAdd, tokenId, existingContract }: { contractAdd: string, tokenId: bigint, existingContract?: ThirdwebContract }): Promise<NFTGeneral | null> {
   //todo: adaptar esse metodo pra usar o do insight, ja que nao precisa ficar testando o tipo
-   const contract = getContract({
+   const contract = existingContract ?? getContract({
      client: thirdwebClientServer,
      chain: activeChain,
      address: contractAdd,
@@ -45,7 +46,7 @@ export async function getCurrentNFT({ contractAdd, tokenId }: { contractAdd: str
       params: [tokenId],
     });
 
-   nft.owner = data;
+    nft.owner = data;
 
      // Return as NFTGeneral (ERC721 doesn't need ownersList)
      return nft as NFTGeneral;
@@ -411,17 +412,19 @@ export async function listNFTsOwnedBy(address: string, fetchCreatorsSocialAccoun
       throw new Error("Address is required");
     }
 
-    const ownedNFTs = await getOwnedNFTsByAddress(address)
+    //todo: trabalhar com um fallback
+    const ownedNFTs1 = await getOwnedNFTsByAddressInsight(address)
+    const ownedNFTs = await getOwnedNFTsByAddressAlchemy(address)
     
     if (!ownedNFTs) {
       throw new Error("Failed to fetch owned NFTs");
     }
   
     // Group NFTs by collection address to avoid duplicate collection fetches
-    const nftsByCollection = new Map<string, { token_address: string; token_id: string; }[]>();
+    const nftsByCollection = new Map<string, { contractAddress: string; id: string; }[]>();
     
-    ownedNFTs.data.forEach((nft: { token_address: string; token_id: string; }) => {
-      const collectionAddress = nft.token_address;
+    ownedNFTs.forEach((nft: { contractAddress: string; id: string; }) => {
+      const collectionAddress = nft.contractAddress;
       if (!nftsByCollection.has(collectionAddress)) {
         nftsByCollection.set(collectionAddress, []);
       }
@@ -467,20 +470,20 @@ export async function listNFTsOwnedBy(address: string, fetchCreatorsSocialAccoun
     const collectionMap = new Map(collections.map(c => [c!.collectionAddress, c!]));
 
     // Process all NFTs with their respective collection data
-    const nftPromises = ownedNFTs.data.map(async (nft: { token_address: string; token_id: string; }) => {
+    const nftPromises = ownedNFTs.map(async (nft: { contractAddress: string; id: string; }) => {
       try {
         const nftData = await getCurrentNFT({ 
-          contractAdd: nft.token_address, 
-          tokenId: BigInt(nft.token_id) 
+          contractAdd: nft.contractAddress, 
+          tokenId: BigInt(nft.id) 
         });
 
         if (!nftData) {
-          throw new Error(`Failed to fetch NFT data for token ${nft.token_id}`);
+          throw new Error(`Failed to fetch NFT data for token ${nft.id}`);
         }
 
-        const collectionInfo = collectionMap.get(nft.token_address);
+        const collectionInfo = collectionMap.get(nft.contractAddress);
         if (!collectionInfo) {
-          throw new Error(`Collection data not found for address ${nft.token_address}`);
+          throw new Error(`Collection data not found for address ${nft.contractAddress}`);
         }
 
         return { 
@@ -491,9 +494,9 @@ export async function listNFTsOwnedBy(address: string, fetchCreatorsSocialAccoun
         } as NFTCollection;
       } catch (error: unknown) {
         if (error instanceof Error) {
-          console.error(`Error processing NFT ${nft.token_id}: ${error.message}`);
+          console.error(`Error processing NFT ${nft.id}: ${error.message}`);
         } else {
-          console.error(`Error processing NFT ${nft.token_id}: ${error}`);
+          console.error(`Error processing NFT ${nft.id}: ${error}`);
         }
         return null;
       }
@@ -509,11 +512,11 @@ export async function isNFTOwnedByAddress(address: string, nft: NFT, collectionA
     return false;
   }
   if(nft && nft.type === "ERC721") {
-    const ownedNFTs = await getOwnedNFTsByAddress(address); //nao pega se tiver listado em auction
+    const ownedNFTs = await getOwnedNFTsByAddressInsight(address); //nao pega se tiver listado em auction
     return ownedNFTs?.data.some((ownedNFT: { token_id: string; token_address: string; }) => ownedNFT.token_id === Number(nft.id).toString() && getAddress(ownedNFT.token_address) === getAddress(collectionAddress));
   }
   else if(nft && nft.type === "ERC1155") { //como 1155 são multieditions, um único id tem vários owners
-    const ownedNFTs = await getOwnedNFTsByAddress(address);
+    const ownedNFTs = await getOwnedNFTsByAddressInsight(address);
     return ownedNFTs?.data.some((ownedNFT: { tokenId: string; tokenAddress: string; }) => ownedNFT.tokenId === nft.id.toString() && getAddress(ownedNFT.tokenAddress) === getAddress(collectionAddress)); 
   }
   return false;
@@ -643,3 +646,13 @@ export async function listCreatedContractsByAddress(address: string): Promise<Co
   return contractDetails.filter(contract => contract !== null);
 }
 
+async function getOwnedNFTsByAddressAlchemy(address: string) {
+  
+  const data = await fetchAlchemyAPI(`https://lens-mainnet.g.alchemy.com/nft/v3/${process.env.ALCHEMY_API_KEY}/getNFTsForOwner?owner=${address}&withMetadata=true&pageSize=100`);
+
+  const ownedNFTs = data.ownedNfts?.map((nft: any) => mapAlchemyNFT(nft));
+  console.log("ownedNFTsAlchemy: ", ownedNFTs);
+  return ownedNFTs; 
+}
+
+export { getOwnedNFTsByAddressAlchemy };

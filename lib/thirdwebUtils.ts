@@ -1,4 +1,3 @@
-import { getOwnedNFTs } from "thirdweb/extensions/erc721";
 import { activeChain } from "./lensNetwork";
 
 //Todos os métodos disponíveis na API do Insight: https://insight-api.thirdweb.com/reference#tag/events
@@ -21,7 +20,7 @@ async function callThirdwebInsight(url: string) {
     }
 }
 
-export async function getOwnedNFTsByAddress(address: string) {
+export async function getOwnedNFTsByAddressInsight(address: string) {
     const url = baseUrl + 'nfts/balance/' + address + '?&metadata=true&resolve_metadata_links=true';
     return callThirdwebInsight(url);
 }

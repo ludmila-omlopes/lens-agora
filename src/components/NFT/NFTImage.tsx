@@ -4,33 +4,10 @@ import { useState, useRef, useEffect } from "react"
 import { resolveScheme } from "thirdweb/storage"
 import { thirdwebClient } from "../../../lib/client/thirdwebClient"
 import { NFT } from "thirdweb"
+import { NFTMedia } from "thirdweb/react"
 
-interface NFTImageProps {
-  nft: NFT
-  isMobile: boolean
-  isImageSticky: boolean
-  onStickyChange: (sticky: boolean) => void
-  buttonsRef: React.RefObject<HTMLDivElement | null>
-}
-
-export default function NFTImage({ 
-  nft, 
-  isMobile, 
-  isImageSticky, 
-  onStickyChange, 
-  buttonsRef 
-}: NFTImageProps) {
+export default function NFTImage({ isMobile, isImageSticky, onStickyChange, buttonsRef }: { isMobile: boolean, isImageSticky: boolean, onStickyChange: (sticky: boolean) => void, buttonsRef: React.RefObject<HTMLDivElement | null> }) {
   const imageContainerRef = useRef<HTMLDivElement | null>(null)
-  const [imageLoading, setImageLoading] = useState(true)
-  const [imageError, setImageError] = useState(false)
-
-  let resolvedImageurl = ""
-  try {
-    resolvedImageurl = resolveScheme({ uri: nft.metadata.image!, client: thirdwebClient })
-  } catch (error) {
-    console.error("Error resolving NFT image URI:", error)
-    resolvedImageurl = "/logo1.png"
-  }
 
   // Handle scroll behavior for the image - only on desktop
   useEffect(() => {
@@ -57,19 +34,6 @@ export default function NFTImage({
     return () => window.removeEventListener("scroll", handleScroll)
   }, [isMobile, onStickyChange, buttonsRef])
 
-  const handleImageLoad = () => {
-    setImageLoading(false)
-  }
-
-  const handleImageError = () => {
-    setImageLoading(false)
-    setImageError(true)
-  }
-
-  const isVideo = resolvedImageurl.match(/\.(mp4|webm|ogg|mov|avi|mkv|wmv|flv|m4v|3gp|ts|mts|m2ts)$/i) || 
-                 resolvedImageurl.includes('video') ||
-                 resolvedImageurl.includes('blob:') && nft.metadata.animation_url
-
   return (
     <div
       ref={imageContainerRef}
@@ -78,7 +42,7 @@ export default function NFTImage({
     >
       <div className="absolute -bottom-4 -right-4 w-full h-full bg-black rounded-lg hidden md:block"></div>
       <div className="relative z-10 border-4 border-black rounded-lg overflow-hidden bg-white">
-        {imageLoading && (
+        {/*{imageLoading && (
           <div className="w-full h-[600px] bg-gray-200 animate-pulse flex items-center justify-center">
             <div className="text-gray-500">Loading image...</div>
           </div>
@@ -112,10 +76,16 @@ export default function NFTImage({
                   onError={handleImageError}
                   style={{ display: imageLoading ? 'none' : 'block' }}
                 />
+                <NFTMedia className="w-full object-cover"  style={{ display: 'block' }} loadingComponent={ <div className="w-full h-[600px] bg-gray-200 animate-pulse flex items-center justify-center">
+            <div className="text-gray-500">Loading image...</div>
+          </div> } />
               )
             }
+
           })()
-        )}
+        )}*/}
+       <NFTMedia className="w-full object-cover"  style={{ display: 'block' }} loadingComponent={ <div className="w-full h-[600px] bg-gray-200 animate-pulse flex items-center justify-center">
+        <div className="text-gray-500">Loading image...</div></div> } />
       </div>
     </div>
   )

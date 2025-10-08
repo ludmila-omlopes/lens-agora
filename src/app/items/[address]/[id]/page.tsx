@@ -1,28 +1,13 @@
-import { resolveScheme } from 'thirdweb/storage';
-import { getCurrentCollection, getCurrentNFT, isNFTOwnedByAddress } from '../../../../../lib/nfts';
-import { thirdwebClient, thirdwebClientServer } from '../../../../../lib/client/thirdwebClient';
-import { fetchNftActivity, getNFTMarketplaceInfo } from '../../../../../lib/marketplacev3';
-import { MarketplaceInfo } from '../../../../../lib/types';
-import { createWallet } from "thirdweb/wallets";
+import { getCurrentNFT } from '../../../../../lib/nfts';
 import NFTDetails from './NFTDetails';
-import { notFound, redirect } from 'next/navigation';
-import { Address, NFT } from 'thirdweb';
-import { ethProvider } from '../../../../../utils/providers';
-import { publicClient } from '../../../../../lib/client/publicClient';
+import { redirect } from 'next/navigation';
+import { withTimeout } from '@/lib/utils';
+import { NFTProvider } from 'thirdweb/react';
+import { Address, getContract } from 'thirdweb';
+import { activeChain } from '../../../../../lib/lensNetwork';
+import { thirdwebClientServer } from '../../../../../lib/client/thirdwebClient';
 
-// Utility function to add timeout to promises
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => 
-      setTimeout(() => reject(new Error('Operation timed out')), timeoutMs)
-    )
-  ]);
-}
-
-const contractAddress1155 = "0xC0Fe17Fcd179d9192205b949d967f39d98645Ee7";
-const contractAddress721 = "0x35d4AdfB8Bb4Bb16051D9e1b7784E8715F6f9ae5";
-
+export const maxDuration = 30;
 
 export default async function NFTDetailsPage({ params }: { params: { address: string, id: string } }) {
   if (process.env.NEXT_PUBLIC_LENSNETWORK_ENVIRONMENT === "main" && process.env.NODE_ENV !== "development") {
@@ -30,45 +15,38 @@ export default async function NFTDetailsPage({ params }: { params: { address: st
   }
 
   try {
-    // Parallel API calls to improve performance with timeouts
-    const [nft, collection] = await Promise.all([
-      withTimeout(getCurrentNFT({ contractAdd: params.address, tokenId: BigInt(params.id) }), 5000), // 5s timeout
-      withTimeout(getCurrentCollection({ contractAdd: params.address }), 5000) // 5s timeout
-    ]);
+    // Only fetch NFT data on server-side for fastest loading
+    const contract = getContract({
+      client: thirdwebClientServer,
+      chain: activeChain,
+      address: params.address,
+    });
+
+    const nft = await withTimeout(
+      getCurrentNFT({ contractAdd: params.address, tokenId: BigInt(params.id), existingContract: contract }), 
+      20000 // 10s timeout
+    );
+
 
     if (!nft) {
       return <div>NFT not found</div>;
     }
 
-    if (!collection) {
-      return <div>Collection not found</div>;
-    }
-
-    // Fetch marketplace info with timeout (activity is optional and can be loaded client-side)
-    const marketplaceResult = await Promise.allSettled([
-      withTimeout(
-        getNFTMarketplaceInfo(nft as NFT, params.address),
-        5000 // 5s timeout for marketplace info
-      )
-    ]);
-
-    // Handle marketplace info result
-    const marketplace = marketplaceResult[0].status === 'fulfilled' ? marketplaceResult[0].value : null;
-    
-    // Activity will be loaded client-side to avoid timeout issues
+    // All other data (collection, marketplace, activity) will be loaded client-side
     const activity: any[] = [];
 
     return (
+      <NFTProvider contract={contract} tokenId={nft.id}>
       <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-100 to-orange-100 dark:from-gray-900 dark:via-purple-900 dark:to-violet-800">
         <div className="container mx-auto py-8">
           <NFTDetails 
             nft={nft} 
-            collection={collection} 
-            marketplaceInfo={marketplace || {} as MarketplaceInfo} 
+            collectionAddress={params.address}
             activityItems={activity} 
           />
         </div>
       </div>
+      </NFTProvider>
     )
   } catch (error) {
     console.error('Error loading NFT details:', error);

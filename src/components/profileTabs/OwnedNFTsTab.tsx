@@ -7,7 +7,8 @@ import { useParams } from "next/navigation";
 import { useLensSession } from "@/contexts/LensSessionContext";
 import { Account } from "@lens-protocol/client";
 import { NFT } from "thirdweb";
-import { getNFTMediaURL, listNFTsOwnedBy } from "../../../lib/nfts";
+import { getNFTMediaURL } from "../../../lib/nfts";
+import { getOwnedNFTsAction } from "../../app/actions/nftActions";
 import { NFTCollection } from "../../../lib/types";
 import { formatAddress } from "../../../lib/profileUtils";
 
@@ -20,7 +21,7 @@ export default function OwnedNFTsTab({ address }: { address: string }) {
     const fetchOwned = async () => {
       setLoading(true);
       try {
-        const owned = await listNFTsOwnedBy(address, true);
+        const owned = await getOwnedNFTsAction(address, true);
         console.log("owned", owned)
         if (owned) {
           setOwnedNFTs(owned);

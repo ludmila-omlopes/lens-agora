@@ -37,7 +37,7 @@ export async function getProfileByAddress(addresses: string | string[]) {
                 acc.address.toLowerCase() === address.toLowerCase()
             );
             
-            if (account) {
+            if (account && account.username?.localName) {
                 profile.name = account.metadata?.name || account.username?.localName || formatAddress(address);
                 profile.image = account.metadata?.picture || "/placeholder.png";
                 profile.bio = account.metadata?.bio || "";
@@ -172,6 +172,7 @@ export async function fetchProfileData(username: string, loggedAccountAddress?: 
   let ownedNFTs: NFTCollection[] | undefined = undefined;
   if (isWalletAddressCheck && walletAddress) {
     try {
+      console.log("fetching owned nfts for wallet address: ", walletAddress);
       const nfts = await listNFTsOwnedBy(walletAddress, true);
       console.log("owned nfts: ", nfts);
       ownedNFTs = nfts || [];

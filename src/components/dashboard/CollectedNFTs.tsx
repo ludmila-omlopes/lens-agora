@@ -1,6 +1,7 @@
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { getNFTMediaURL, listNFTsOwnedBy } from "../../../lib/nfts";
+import { getNFTMediaURL } from "../../../lib/nfts";
+import { getOwnedNFTsAction } from "../../app/actions/nftActions";
 import { useEffect, useState } from "react";
 import { NFTCollection } from "../../../lib/types";
 import { useAccount } from "wagmi";
@@ -15,7 +16,7 @@ export default function CollectedNFTs() {
       if (isConnected && userAddress) {
         setIsLoading(true); // ✅ Start loading
         try {
-          const nfts = await listNFTsOwnedBy(userAddress);
+          const nfts = await getOwnedNFTsAction(userAddress);
           setCollectedNFTs(nfts);
         } catch (error) {
           console.error("Error fetching NFTs:", error);

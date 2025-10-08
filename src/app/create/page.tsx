@@ -3,7 +3,7 @@ import CreateNFT from "./CreateNFT";
 import MintNFTPage from "./MintNFTPage";
 
 export default async function CreatePage() {
-  if (process.env.NEXT_PUBLIC_LENSNETWORK_ENVIRONMENT === "main") {
+  if (process.env.NEXT_PUBLIC_LENSNETWORK_ENVIRONMENT === "main" && process.env.NODE_ENV !== "development") {
     return redirect("/"); 
   }
   return (

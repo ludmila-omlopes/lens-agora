@@ -9,7 +9,8 @@ import { bidInAuction as callBidInAuction, cancelListing as callCancelListing,
   updateListing, makeOffer as callMakeOffer, acceptOffer as callAcceptOffer, 
   totalListings,
   getOffer,
-  getAuction} from "thirdweb/extensions/marketplace";
+  getAuction,
+  getWinningBid} from "thirdweb/extensions/marketplace";
 import { sendTransaction } from "thirdweb";
 import { allowance, approve, getApprovalForTransaction } from "thirdweb/extensions/erc20";
 import { approveNFT, getCurrentCollection, getCurrentNFT } from "./nfts";
@@ -110,59 +111,53 @@ export async function cancelListing(account: any, listingId: bigint) {
 }
 
 
-async function getCurrentListingForNFT(nft: NFT, nftAddress: string) {
-  //talvez seja melhor indexar
-  const result = await totalListings({
-    contract,
-  });
-  const totalListingsCount = Number(result);
+async function getCurrentListingForNFT(tokenAddress: string, tokenId: bigint) {
 
-  let currentListing = undefined;
-  let start = 0;
-  const batchSize = 100;
-  let finalBatchSize = batchSize;
-
-  while (currentListing === undefined && start < totalListingsCount) {
     const listings = await getAllValidListings({
-      contract, 
-      start, 
-      count: BigInt(finalBatchSize)
+      contract
     });
 
-    currentListing = listings.find((listing) => 
-      listing.asset.id === nft.id && 
-      getAddress(listing.assetContractAddress) === getAddress(nft.tokenAddress)
+    const currentListing = listings.find((listing) => 
+      listing.asset.id === tokenId && 
+      getAddress(listing.assetContractAddress) === getAddress(tokenAddress)
     );
-
-    start += batchSize;
-    finalBatchSize += batchSize;
-  }
 
   return currentListing;
 }
 
-async function getCurrentAuctionForNFT(nft: NFT, nftAddress: string) {
+async function getCurrentAuctionForNFT(tokenAddress: string, tokenId: bigint) {
   const validAuctions = await getAllValidAuctions({contract});
   
   const currentAuction = validAuctions.find((auction) => 
-    auction.tokenId === nft.id && 
-    getAddress(auction.assetContractAddress) === getAddress(nftAddress)
+    auction.tokenId === tokenId && 
+    getAddress(auction.assetContractAddress) === getAddress(tokenAddress)
   );
 
   return currentAuction;
 }
 
-export async function getNFTMarketplaceInfo(nft: NFT, nftAddress: string) {
+export async function getNFTMarketplaceInfo(tokenAddress: string, tokenId: bigint) {
   //todo: talvez é melhor pegar todas as listings e auctions
   //pensar no listingtype 
   const marketplaceInfo = {} as MarketplaceInfo;
 
-  const currentListing = await getCurrentListingForNFT(nft, nftAddress);
-  const currentAuction = await getCurrentAuctionForNFT(nft, nftAddress);
+  // Parallelize the calls since they are independent
+  const [currentListing, currentAuction] = await Promise.all([
+    getCurrentListingForNFT(tokenAddress, tokenId),
+    getCurrentAuctionForNFT(tokenAddress, tokenId)
+  ]);
+
+  if (currentAuction) {
+    const winningBid = await getWinningBid({
+      contract,
+      auctionId: currentAuction.id,
+    });
+    marketplaceInfo.winningBid = winningBid;
+  }
   
   marketplaceInfo.listing = currentListing!;
-  marketplaceInfo.nftAddress = nft.tokenAddress;
-  marketplaceInfo.nftId = nft.id;
+  marketplaceInfo.nftAddress = tokenAddress;
+  marketplaceInfo.nftId = tokenId;
   marketplaceInfo.auction = currentAuction!;
   
   return marketplaceInfo;
@@ -622,7 +617,6 @@ export async function fetchNftActivity(
   });
 
   let items = logs.map((l: any) => normalizeLog(l)).filter((x: any) => !!x) as ActivityItem[];
-  console.log("items: ", items);
 
   // Client-side token filter
   if (scope.tokenId !== undefined) {

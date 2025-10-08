@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { image, MediaImageMimeType } from "@lens-protocol/metadata"
 import { uploadMetadataToGrove } from "../../../../../lib/lensNetwork"
 import { post } from "@lens-protocol/client/actions"
@@ -9,21 +9,44 @@ import { uri } from "@lens-protocol/client"
 import { resolveScheme } from "thirdweb/storage"
 import { thirdwebClient } from "../../../../../lib/client/thirdwebClient"
 import { NFT } from "thirdweb"
-import { ActivityItem, Collection, NFTGeneral, MarketplaceInfo } from "../../../../../lib/types"
+import { ActivityItem, Collection, NFTGeneral } from "../../../../../lib/types"
+import { getCurrentCollection } from "../../../../../lib/nfts"
 import { Address } from "thirdweb"
 import { useNFTDetails } from "@/hooks/useNFTDetails"
 import NFTImage from "@/components/NFT/NFTImage"
 import NFTInfo from "@/components/NFT/NFTInfo"
+import NFTMarketplaceInfo from "@/components/NFT/NFTMarketplaceInfo"
 import ActivityFeed from "@/components/NFT/ActivityFeed"
 import CollectionInfo from "@/components/NFT/CollectionInfo"
 import SocialActions from "@/components/NFT/SocialActions"
 import NFTOffersSection from "@/components/NFT/NFTOffersSection"
 
-export default function NFTDetails( {nft, collection, marketplaceInfo, activityItems } : {nft: NFTGeneral, collection: Collection, marketplaceInfo: MarketplaceInfo, activityItems: ActivityItem[]} ) {
+export default function NFTDetails( {nft, collectionAddress, activityItems } : {nft: NFTGeneral, collectionAddress: string, activityItems: ActivityItem[]} ) {
   const { sessionClient } = useLensSession()
+  const [collection, setCollection] = useState<Collection | null>(null)
+  const [collectionLoading, setCollectionLoading] = useState(true)
 
   // Get owners list for ERC1155 tokens
   const owners = nft.ownersList || [];
+
+  // Fetch collection data client-side
+  useEffect(() => {
+    const fetchCollection = async () => {
+      try {
+        setCollectionLoading(true);
+        const collectionData = await getCurrentCollection({ contractAdd: collectionAddress });
+        setCollection(collectionData);
+      } catch (error) {
+        console.error('Error fetching collection:', error);
+        setCollection(null);
+      } finally {
+        setCollectionLoading(false);
+      }
+    };
+
+    fetchCollection();
+  }, [collectionAddress]);
+
 
   let resolvedImageurl = ""
   try { 
@@ -44,9 +67,11 @@ export default function NFTDetails( {nft, collection, marketplaceInfo, activityI
     isOwner,
     buttonsRef,
     imageContainerRef
-  } = useNFTDetails({ nft, marketplaceInfo, activityItems, collection, owners })
+  } = useNFTDetails({ nft, activityItems, collection: collection || undefined, owners })
 
   const handleShare = async (shareMessage: string) => {
+    if (!collection) return;
+    
     const tag = (collection.address + nft.id.toString()).toLowerCase()
     const metadata = image({
       tags: [tag],
@@ -89,7 +114,6 @@ export default function NFTDetails( {nft, collection, marketplaceInfo, activityI
 
         {/* Left column - NFT Image */}
         <NFTImage
-          nft={nft}
           isMobile={isMobile}
           isImageSticky={isImageSticky}
           onStickyChange={setIsImageSticky}
@@ -97,14 +121,21 @@ export default function NFTDetails( {nft, collection, marketplaceInfo, activityI
         />
 
         {/* Right column - NFT Details */}
-        <NFTInfo
-          nft={nft}
-          marketplaceInfo={marketplaceInfo}
-          isOwner={isOwner}
-          buttonsRef={buttonsRef}
-          collection={collection}
-          owners={owners}
-        />
+        <div className="space-y-6">
+          <NFTInfo
+            nft={nft}
+            collection={collection || undefined}
+            owners={owners}
+          />
+          
+          {/* Marketplace Information */}
+          <NFTMarketplaceInfo
+            nft={nft}
+            isOwner={isOwner}
+            buttonsRef={buttonsRef}
+            collection={collection || undefined}
+          />
+        </div>
       </div>
 
       {/* Content sections */}
@@ -112,11 +143,13 @@ export default function NFTDetails( {nft, collection, marketplaceInfo, activityI
         {/* Left/Center content (2 columns) */}
         <div className="md:col-span-2 space-y-8">
           {/* Offers section */}
-          <NFTOffersSection 
-            collectionAddress={collection.address} 
-            tokenId={nft.id} 
-            isOwner={isOwner} 
-          />
+          {collection && (
+            <NFTOffersSection 
+              collectionAddress={collection.address} 
+              tokenId={nft.id} 
+              isOwner={isOwner} 
+            />
+          )}
           
           {/* Activity feed */}
           <ActivityFeed 
@@ -127,10 +160,28 @@ export default function NFTDetails( {nft, collection, marketplaceInfo, activityI
         </div>
 
         {/* Right sidebar - Collection info */}
-        <CollectionInfo 
-          nftId={nft.id.toString()}
-          collection={collection}
-        />
+        {collectionLoading ? (
+          <div className="bg-gradient-to-br from-white to-[#E5E2F9] rounded-lg border-4 border-black p-6">
+            <div className="animate-pulse">
+              <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
+              <div className="space-y-3">
+                <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-full"></div>
+                <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-5/6"></div>
+                <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-4/6"></div>
+              </div>
+            </div>
+          </div>
+        ) : collection ? (
+          <CollectionInfo 
+            nftId={nft.id.toString()}
+            collection={collection}
+          />
+        ) : (
+          <div className="bg-gradient-to-br from-white to-[#E5E2F9] rounded-lg border-4 border-black p-6">
+            <h3 className="text-lg font-bold mb-4">Collection Info</h3>
+            <p className="text-gray-600">Failed to load collection data</p>
+          </div>
+        )}
       </div>
     </div>
   )

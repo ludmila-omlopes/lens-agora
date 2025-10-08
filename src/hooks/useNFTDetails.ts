@@ -2,20 +2,19 @@
 
 import { useState, useEffect, useRef } from "react"
 import { NFT } from "thirdweb"
-import { MarketplaceInfo, ActivityItem, Collection } from "../../lib/types"
+import { ActivityItem, Collection } from "../../lib/types"
 import { isNFTOwnedByAddress } from "../../lib/nfts"
 import { useActiveAccount } from "thirdweb/react"
 import { useThirdwebWallet } from "./useThirdwebWallet"
 
 interface UseNFTDetailsProps {
   nft: NFT
-  marketplaceInfo: MarketplaceInfo
   activityItems: ActivityItem[]
-  collection: Collection
+  collection?: Collection
   owners: string[]
 }
 
-export function useNFTDetails({ nft, marketplaceInfo, activityItems, collection, owners }: UseNFTDetailsProps) {
+export function useNFTDetails({ nft, activityItems, collection, owners }: UseNFTDetailsProps) {
   const [isLiked, setIsLiked] = useState(false)
   const [isImageSticky, setIsImageSticky] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
@@ -39,7 +38,7 @@ export function useNFTDetails({ nft, marketplaceInfo, activityItems, collection,
   // Ownership check
   useEffect(() => {
     const checkOwnership = async () => {
-      if (account && account.address) {
+      if (account && account.address && collection) {
         try {
           const userIsOwner = await isNFTOwnedByAddress(account.address, nft, collection.address)
           setIsOwner(userIsOwner)
@@ -49,7 +48,7 @@ export function useNFTDetails({ nft, marketplaceInfo, activityItems, collection,
       }
     }
     checkOwnership()
-  }, [account, nft, collection.address])
+  }, [account, nft, collection?.address])
 
   // Scroll behavior for image sticky
   useEffect(() => {
