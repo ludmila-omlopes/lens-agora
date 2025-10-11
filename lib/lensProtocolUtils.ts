@@ -1,7 +1,8 @@
-import { Account, AnyPost, evmAddress, MainContentFocus, PageSize, PaginatedResultInfo, Post, PostId, postId, PostReferenceType, PostVisibilityFilter, uri } from "@lens-protocol/client";
+import { Account, AnyPost, evmAddress, MainContentFocus, PageSize, PaginatedResultInfo, Post, PostId, postId, PostReactionType, PostReferenceType, PostVisibilityFilter, uri } from "@lens-protocol/client";
 import { currentSession, fetchAccount, fetchAccounts, fetchAccountsAvailable, fetchFollowStatus , fetchAuthenticatedSessions, 
   fetchAccountGraphStats, fetchPost, fetchPostReferences, fetchPosts, post, 
-  lastLoggedInAccount} from "@lens-protocol/client/actions";
+  lastLoggedInAccount,
+  addReaction, undoReaction} from "@lens-protocol/client/actions";
 import { lensPublicClient, lensPublicMainnetClient } from "./client/lensProtocolClient";
 import { lensServerClient } from "./client/lensServerClient";
 import { gql } from '@apollo/client';
@@ -176,9 +177,9 @@ export async function searchLensAccounts(search: string) {
   return items as Account[];
 }
 
-export async function listPostsByNFT(nftId: string, collectionAddress: string ) {
+export async function listPostsByNFT(nftId: string, collectionAddress: string, sessionClient?: any) {
   const tag = (collectionAddress + nftId).toLowerCase();
-  const result = await fetchPosts(lensPublicClient, {
+  const result = await fetchPosts(sessionClient || lensPublicClient, {
     filter: {
       metadata: {
         tags: { all: [tag] }
@@ -241,8 +242,8 @@ export async function listCommentsFromPosts(ids: PostId[]) {
   return consolidatedResults[0].length > 0 ? consolidatedResults : null;
 } 
 
-export async function getPostById(id: string) {
-  const result = await fetchPost(lensPublicClient, {
+export async function getPostById(id: string, sessionClient?: any) {
+  const result = await fetchPost(sessionClient || lensPublicClient, {
     post: postId(id),
   });
   
@@ -254,15 +255,15 @@ export async function getPostById(id: string) {
   return post;
 }
 
-export async function createCommentOnPost(currentPostId: string, comment: string) {
+export async function createCommentOnPost(currentPostId: string, comment: string, sessionClient?: any) {
   const resumed = await lensPublicClient.resumeSession();
 
     if (resumed.isErr()) {
       return console.error(resumed.error);
     }
-    const sessionClient = resumed.value; //todo: separa isso em outro método talvez?
+  const client = sessionClient || lensPublicClient;
   
-  const currentPost = await getPostById(currentPostId);
+  const currentPost = await getPostById(currentPostId, sessionClient);
   if (!currentPost) {
     return null;
   }
@@ -295,7 +296,7 @@ export async function createCommentOnPost(currentPostId: string, comment: string
   });
 
   const metadataURI = uploadMetadataToGrove(metadata);
-  const result = await post(sessionClient, {
+  const result = await post(client, {
     contentUri: uri((await metadataURI).uri
     ),
     commentOn: {
@@ -306,22 +307,84 @@ export async function createCommentOnPost(currentPostId: string, comment: string
   
 }
 
-export async function createCommentonNFT(nftId: string, collectionAddress: string, comment: string) {
-  const posts = await listPostsByNFT(nftId, collectionAddress);
+export async function createLikeOnPost(currentPostId: string, sessionClient?: any) {
+
+  const client = sessionClient || lensPublicClient;
+
+  const currentPost = await getPostById(currentPostId, client);
+  if (!currentPost) {
+    return null;
+  }
+
+  if (currentPost.__typename !== "Post") {
+    console.error("Post not found");
+    return null;
+  }
+
+  const result = await addReaction(client, {
+    post: postId(currentPostId),
+    reaction: PostReactionType.Upvote,
+  });
+  
+  if (result.isErr()) {
+    return console.error(result.error);
+  }
+  return result.value;
+}
+
+export async function undoLikeOnPost(currentPostId: string, sessionClient?: any) {
+  const client = sessionClient || lensPublicClient;
+
+  const currentPost = await getPostById(currentPostId, client);
+  if (!currentPost) {
+    return null;
+  }
+
+  const result = await undoReaction(client, {
+    post: postId(currentPostId),
+    reaction: PostReactionType.Upvote,
+  });
+
+  if (result.isErr()) {
+    return console.error(result.error);
+  }
+  return result.value;
+}
+
+export async function createCommentonNFT(nftId: string, collectionAddress: string, comment: string, sessionClient?: any) {
+  const posts = await listPostsByNFT(nftId, collectionAddress, sessionClient);
   if (!posts) {
     return null;
   }
   const post = posts.items[0] as Post;
-  createCommentOnPost(post.id, comment);
+  createCommentOnPost(post.id, comment, sessionClient);
+  return post;
+}
+
+export async function executeLikeClickForNFT(nftId: string, collectionAddress: string, sessionClient?: any) {
+  const posts = await listPostsByNFT(nftId, collectionAddress, sessionClient);
+  if (!posts) {
+    return null;
+  }
+  const post = posts.items[0] as Post;
+  console.log("post: ", post);
+  const hasLiked = post.operations?.hasUpvoted;
+  console.log("hasLiked: ", hasLiked);
+  if (hasLiked) {
+    undoLikeOnPost(post.id, sessionClient);
+  } else {
+    createLikeOnPost(post.id, sessionClient);
+  }
   return post;
 }
 
 export async function getCommentsForNFT(
   nftId: string,
-  collectionAddress: string
+  collectionAddress: string,
+  sessionClient?: any
 ): Promise<AnyPost[]> {
   try {
-    const postResponse = await listPostsByNFT(nftId, collectionAddress);
+    const postResponse = await listPostsByNFT(nftId, collectionAddress, sessionClient);
     const postIds = postResponse?.items
       ?.filter((post): post is Post => post.__typename === "Post")
       .map((post) => post.id) || [];
@@ -333,6 +396,53 @@ export async function getCommentsForNFT(
     console.error("Failed to fetch comments for NFT:", error);
     return [];
   }
+}
+
+export async function getLikesForNFT(nftId: string, collectionAddress: string, sessionClient?: any) {
+  const post = await listPostsByNFT(nftId, collectionAddress, sessionClient);
+  if (!post) {
+    return 0;
+  }
+  const currentPost = post.items.find(post => post.__typename === "Post");
+  if (!currentPost) {
+    return 0;
+  }
+
+  return currentPost.stats.upvotes;
+}
+
+export async function getLikesForNFTWithUserStatus(nftId: string, collectionAddress: string, sessionClient?: any) {
+  // Use session client if provided, otherwise use public client
+  const client = sessionClient || lensPublicClient;
+  
+  const tag = (collectionAddress + nftId).toLowerCase();
+  const result = await fetchPosts(client, {
+    filter: {
+      metadata: {
+        tags: { all: [tag] }
+      },
+    },
+  });
+  
+  if (result.isErr()) {
+    console.error("Error fetching posts by NFT:", result.error);
+    return { likes: 0, hasLiked: false };
+  }
+  
+  const post = result.value;
+  if (!post) {
+    return { likes: 0, hasLiked: false };
+  }
+  
+  const currentPost = post.items.find(post => post.__typename === "Post");
+  if (!currentPost) {
+    return { likes: 0, hasLiked: false };
+  }
+
+  return {
+    likes: currentPost.stats.upvotes,
+    hasLiked: currentPost.operations?.hasUpvoted || false
+  };
 }
 
 export async function getLensAccount(lensUsername: string)

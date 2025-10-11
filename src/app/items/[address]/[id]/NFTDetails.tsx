@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { image, MediaImageMimeType } from "@lens-protocol/metadata"
 import { uploadMetadataToGrove } from "../../../../../lib/lensNetwork"
 import { post } from "@lens-protocol/client/actions"
-import { useLensSession } from "@/contexts/LensSessionContext"
 import { uri } from "@lens-protocol/client"
 import { resolveScheme } from "thirdweb/storage"
 import { thirdwebClient } from "../../../../../lib/client/thirdwebClient"
@@ -20,6 +19,8 @@ import ActivityFeed from "@/components/NFT/ActivityFeed"
 import CollectionInfo from "@/components/NFT/CollectionInfo"
 import SocialActions from "@/components/NFT/SocialActions"
 import NFTOffersSection from "@/components/NFT/NFTOffersSection"
+import { lensPublicClient } from "../../../../../lib/client/lensProtocolClient"
+import { useLensSession } from "@/contexts/LensSessionContext"
 
 export default function NFTDetails( {nft, collectionAddress, activityItems } : {nft: NFTGeneral, collectionAddress: string, activityItems: ActivityItem[]} ) {
   const { sessionClient } = useLensSession()
@@ -69,6 +70,9 @@ export default function NFTDetails( {nft, collectionAddress, activityItems } : {
     imageContainerRef
   } = useNFTDetails({ nft, activityItems, collection: collection || undefined, owners })
 
+  // State to track actual like status from API
+  const [actualLikeStatus, setActualLikeStatus] = useState(false)
+
   const handleShare = async (shareMessage: string) => {
     if (!collection) return;
     
@@ -102,14 +106,20 @@ export default function NFTDetails( {nft, collectionAddress, activityItems } : {
     }
   }
 
+
   return (
     <div className="container mx-auto py-12 px-4 bg-gradient-to-b from-[#F7F6FC] to-[#F0EFFA]">
       <div className="relative grid md:grid-cols-2 gap-10">
         {/* Social actions */}
         <SocialActions 
-          isLiked={isLiked}
-          onLikeToggle={setIsLiked}
+          isLiked={actualLikeStatus} 
+          onLikeToggle={(liked) => {
+            setActualLikeStatus(liked)
+            setIsLiked(liked)
+          }} 
           onShare={handleShare}
+          nft={nft}
+          collection={collection || undefined}
         />
 
         {/* Left column - NFT Image */}
@@ -126,6 +136,7 @@ export default function NFTDetails( {nft, collectionAddress, activityItems } : {
             nft={nft}
             collection={collection || undefined}
             owners={owners}
+            onLikeStatusChange={setActualLikeStatus}
           />
           
           {/* Marketplace Information */}

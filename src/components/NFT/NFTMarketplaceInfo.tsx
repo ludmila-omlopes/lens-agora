@@ -26,12 +26,7 @@ export default function NFTMarketplaceInfo({ nft, isOwner, buttonsRef, collectio
   useEffect(() => {
     const fetchMarketplaceInfo = async () => {
       if (!collection) return
-      
-      console.log('NFTMarketplaceInfo: Fetching marketplace info for', {
-        collectionAddress: collection.address,
-        tokenId: nft.id.toString(),
-        tokenIdType: typeof nft.id
-      })
+    
       
       try {
         setMarketplaceLoading(true)

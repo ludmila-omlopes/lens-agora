@@ -11,8 +11,9 @@ import { ConnectKitButton } from "connectkit"
 import { RetroButton } from "./customUI/RetroButton"
 import { useTheme } from "@/app/contexts/ThemeContext"
 import { useAccount } from "wagmi"
-import { useLensSession } from "@/contexts/LensSessionContext"
 import ProfileSelectDialog from "../../components/ProfileSelectDialog"
+import { lensPublicClient } from "../../lib/client/lensProtocolClient"
+import { useLensSession } from "@/contexts/LensSessionContext"
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -24,10 +25,8 @@ export default function Header() {
   const { theme, toggleTheme } = useTheme()
   const { address, isConnecting, isDisconnected, isConnected: isWalletConnected } = useAccount();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [currentSession, setCurrentSession] = useState<any>(null);
 
   const { sessionClient, session, loading, logout, login } = useLensSession();
-
 
   const pathname = usePathname()
 
@@ -76,6 +75,7 @@ export default function Header() {
     console.log("Searching for:", searchQuery)
     // In a real app, you would redirect to search results page
   }
+
 
   return (
     <header
@@ -148,7 +148,7 @@ export default function Header() {
 
             {/* Lens Button */}
             {
-          (isWalletConnected && address && ! loading && !session) ? (
+          (isWalletConnected && address && !lensPublicClient) ? (
               <>
               <ProfileSelectDialog accountAddress={address} open={isDialogOpen} onOpenChange={setIsDialogOpen} />
               </>

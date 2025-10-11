@@ -7,26 +7,28 @@ import { NFT } from "thirdweb"
 import { Collection, Profile } from "../../../lib/types"
 import { getProfileByAddress } from "../../../lib/profileUtils"
 import { NFTDescription, NFTName } from "thirdweb/react"
+import { getLikesForNFT, getLikesForNFTWithUserStatus } from "../../../lib/lensProtocolUtils"
+import { useLensSession } from "@/contexts/LensSessionContext"
 
 interface NFTInfoProps {
   nft: NFT
   collection?: Collection
   owners: string[]
+  onLikeStatusChange?: (hasLiked: boolean) => void
 }
 
-export default function NFTInfo({ nft, collection, owners }: NFTInfoProps) {
+export default function NFTInfo({ nft, collection, owners, onLikeStatusChange }: NFTInfoProps) {
+  const { sessionClient } = useLensSession()
   const [ntOwnerProfiles, setNtOwnerProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
-
+  const [nftLikes, setNftLikes] = useState(0)
+  const [hasLiked, setHasLiked] = useState(false)
   // Create stable references for owners and nft.owner
   const ownersString = useMemo(() => owners?.join(',') || '', [owners])
   const nftOwnerString = useMemo(() => nft.owner || '', [nft.owner])
+  const nftAttributes = useMemo(() => (nft.metadata.attributes as Array<{value: string}>) || [], [nft.metadata.attributes])
 
-  const nftSocialInfo = {
-    likes: 47,
-    categories: ["Digital Art", "Surrealism", "3D", "Animation"],
-  }
-
+  // Fetch owner profiles
   useEffect(() => {
     const fetchOwnerProfiles = async () => {
       try {
@@ -58,6 +60,36 @@ export default function NFTInfo({ nft, collection, owners }: NFTInfoProps) {
     
     fetchOwnerProfiles()
   }, [ownersString, nftOwnerString])
+
+  // Fetch NFT likes
+  useEffect(() => {
+    const fetchLikes = async () => {
+      if (!collection?.address) return
+
+    
+        try {
+          // Use authenticated function if user is logged in, otherwise use public function
+          if (sessionClient) {
+            const { likes, hasLiked } = await getLikesForNFTWithUserStatus(nft.id.toString(), collection.address, sessionClient)
+            setNftLikes(likes)
+            setHasLiked(hasLiked)
+            onLikeStatusChange?.(hasLiked)
+          } else {
+            const likes = await getLikesForNFT(nft.id.toString(), collection.address)
+            setNftLikes(likes)
+            setHasLiked(false)
+            onLikeStatusChange?.(false)
+          }
+        } catch (error) {
+          console.error("Failed to fetch NFT likes:", error)
+          setNftLikes(0)
+          setHasLiked(false)
+          onLikeStatusChange?.(false)
+        }
+    }
+    
+    fetchLikes()
+  }, [nft.id.toString(), collection?.address, sessionClient])
 
   if (loading) {
     return (
@@ -137,12 +169,11 @@ export default function NFTInfo({ nft, collection, owners }: NFTInfoProps) {
         </div>
       )}
      
-
-      {/* Likes info */}
+      {hasLiked && (
       <div className="flex items-center font-bold mb-4">
-        <Heart className="h-5 w-5 mr-1" />
-        {nftSocialInfo.likes} likes
-      </div>
+        <Heart className={`h-5 w-5 mr-1 ${hasLiked ? 'fill-red-500' : ''}`} />
+        {nftLikes} likes
+      </div>  )}
 
       {/* Description */}
       <div className="bg-gradient-to-br from-white to-[#F7F6FC] rounded-lg border-4 border-black p-6 mb-6">
@@ -152,13 +183,13 @@ export default function NFTInfo({ nft, collection, owners }: NFTInfoProps) {
 
         {/* Category tags */}
         <div className="flex flex-wrap gap-2 mt-6">
-          {nftSocialInfo.categories.map((category, index) => (
+          {nftAttributes.map((attribute: {value: string}, index: number) => (
             <Link
               key={index}
-              href={`/category/${category.toLowerCase().replace(" ", "-")}`}
+              href={`/items/${collection?.address}`}
               className="bg-[#F7F6FC] px-3 py-1 rounded-md border-2 border-black font-bold text-sm hover:bg-white"
             >
-              {category}
+              {attribute.value}
             </Link>
           ))}
         </div>
