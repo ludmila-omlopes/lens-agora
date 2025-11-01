@@ -8,12 +8,8 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Search, Wallet, Menu, X } from "lucide-react"
 import { ConnectKitButton } from "connectkit"
-import { RetroButton } from "./customUI/RetroButton"
 import { useTheme } from "@/app/contexts/ThemeContext"
-import { useAccount } from "wagmi"
-import ProfileSelectDialog from "../../components/ProfileSelectDialog"
-import { lensPublicClient } from "../../lib/client/lensProtocolClient"
-import { useLensSession } from "@/contexts/LensSessionContext"
+import LoginLogoutButton from "./LoginLogoutButton"
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -23,10 +19,7 @@ export default function Header() {
   const [walletAddress, setWalletAddress] = useState("")
 
   const { theme, toggleTheme } = useTheme()
-  const { address, isConnecting, isDisconnected, isConnected: isWalletConnected } = useAccount();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  const { sessionClient, session, loading, logout, login } = useLensSession();
+  
 
   const pathname = usePathname()
 
@@ -34,7 +27,6 @@ export default function Header() {
     { name: "Home", href: "/" },
     { name: "Create", href: "/create" },
     { name: "Explore", href: "/explore" },
-    { name: "Dashboard", href: "/dashboard" },
     { name: "New Account", href: "/newAccount" },
   ]
 
@@ -146,26 +138,8 @@ export default function Header() {
               </button>
             )}*/}
 
-            {/* Lens Button */}
-            {
-          (isWalletConnected && address && !lensPublicClient) ? (
-              <>
-              <ProfileSelectDialog accountAddress={address} open={isDialogOpen} onOpenChange={setIsDialogOpen} />
-              </>
-            ) : (session && !loading) ? (
-              <RetroButton onClick={logout}>
-              Log Out
-            </RetroButton>) : <></>
-            }
-
-            <a
-              href="https://lenster.xyz"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center h-10 w-10 bg-gradient-to-r from-[#8F83E0] to-[#7F71D9] text-white font-bold rounded-md border-2 border-black hover:-translate-y-1 transition-transform duration-200"
-            >
-              <span className="text-lg">L</span>
-            </a>
+            {/* Lens Login/Logout */}
+            <LoginLogoutButton />
           </div>
 
           {/* Mobile Menu Button */}

@@ -15,6 +15,7 @@ import { listAvailableLensAccounts, loginWithAccount } from '../lib/lensProtocol
 import { AccountAvailable } from '@lens-protocol/client';
 import { DialogTitle } from '@radix-ui/react-dialog';
 import { RetroButton } from '@/components/customUI/RetroButton';
+import { useLensSession } from '@/contexts/LensSessionContext';
 
 interface ProfileSelectDialogProps {
     accountAddress: string; // Replace `any` with a specific type if possible
@@ -30,6 +31,7 @@ const ProfileSelectDialog: React.FC<ProfileSelectDialogProps> = ({
     const [managedProfiles, setManagedProfiles] = useState<AccountAvailable[] | null>(null);
     const [loadingProfiles, setLoadingProfiles] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const { resume } = useLensSession();
 
     useEffect(() => {
         const fetchLensAccounts = async () => {
@@ -61,8 +63,9 @@ const ProfileSelectDialog: React.FC<ProfileSelectDialogProps> = ({
         try {
             const sessionClient = await loginWithAccount(accountAddress, lensAccount.account);
             console.log('sessionClient: ', sessionClient);
+            // Trigger resume to update the session context and refresh UI
+            await resume();
             onOpenChange(false); 
-            window.location.reload(); 
         } catch (err) {
             console.error('Error logging in with account:', err);
             setError('Failed to login with the selected profile. Please try again later.');
