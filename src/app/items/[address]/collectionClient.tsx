@@ -7,25 +7,85 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Collection } from '../../../../lib/types'
 import { NFT } from 'thirdweb'
-import { getNFTMediaURL } from '../../../../lib/nfts'
+import { getNFTMediaURL, listNFTs } from '../../../../lib/nfts'
 import { getNFTMarketplaceInfo } from '../../../../lib/marketplacev3'
 import NFTCard from '../../../../components/NFTCard'
 import { MarketplaceInfo } from '../../../../lib/types'
 import { Palette, Plus } from 'lucide-react'
 import { useAccount } from 'wagmi'
+import { useLensProfile, useLensProfiles } from '../../../hooks/useLensProfile'
 
 export default function CollectionDetails({collectionContract, firstNFTs}: {collectionContract: Collection, firstNFTs: NFT[]}) {
   const { theme } = useTheme()
   const { address } = useAccount()
   const [nftMarketplaceInfo, setNftMarketplaceInfo] = useState<Record<string, MarketplaceInfo>>({})
   
+  // Pagination state
+  const [allNFTs, setAllNFTs] = useState<NFT[]>(firstNFTs)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(firstNFTs.length === 12) // If we got exactly 12, there might be more
+  const [currentPage, setCurrentPage] = useState(0)
+  const itemsPerPage = 12
+  
+  // Collect all unique addresses from NFTs
+  const allAddresses = [
+    collectionContract.owner,
+    ...allNFTs.map(nft => nft.owner).filter(Boolean)
+  ].filter((addr, index, arr) => arr.indexOf(addr) === index) // Remove duplicates
+
+  // Fetch all profiles at once
+  const { profiles: allProfiles, loading: profilesLoading } = useLensProfiles(allAddresses)
+  
+  // Get creator profile
+  const creatorProfile = allProfiles[collectionContract.owner] || null
+  const creatorLoading = profilesLoading
+  
   // Check if current user is the collection owner
   const isOwner = address === collectionContract.owner
+
+  // Function to fetch more NFTs
+  const fetchMoreNFTs = async () => {
+    if (loadingMore || !hasMore) return
+    
+    setLoadingMore(true)
+    try {
+      const nextPage = currentPage + 1
+      const start = nextPage * itemsPerPage
+      
+      const newNFTs = await listNFTs({ 
+        contractAdd: collectionContract.address, 
+        start, 
+        count: itemsPerPage 
+      })
+      
+      if (newNFTs && newNFTs.length > 0) {
+        setAllNFTs(prev => [...prev, ...newNFTs])
+        setCurrentPage(nextPage)
+        setHasMore(newNFTs.length === itemsPerPage) // If we got exactly the count, there might be more
+        
+        // Fetch marketplace info for new NFTs
+        const newMarketplaceInfo: Record<string, MarketplaceInfo> = {}
+        for (const nft of newNFTs) {
+          const marketplaceInfo = await getNFTMarketplaceInfo(collectionContract.address, nft.id)
+          if (marketplaceInfo) {
+            newMarketplaceInfo[nft.id.toString()] = marketplaceInfo
+          }
+        }
+        setNftMarketplaceInfo(prev => ({ ...prev, ...newMarketplaceInfo }))
+      } else {
+        setHasMore(false)
+      }
+    } catch (error) {
+      console.error('Error fetching more NFTs:', error)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   useEffect(() => {
     const fetchMarketplaceInfo = async () => {
       const info: Record<string, MarketplaceInfo> = {}
-      for (const nft of firstNFTs) {
+      for (const nft of allNFTs) {
         const marketplaceInfo = await getNFTMarketplaceInfo(collectionContract.address, nft.id)
         if (marketplaceInfo) {
           info[nft.id.toString()] = marketplaceInfo
@@ -34,21 +94,21 @@ export default function CollectionDetails({collectionContract, firstNFTs}: {coll
       setNftMarketplaceInfo(info)
     }
     fetchMarketplaceInfo()
-  }, [firstNFTs, collectionContract.address])
+  }, [allNFTs, collectionContract.address])
 
   return (
     <div className="min-h-screen">
       {/* Cover Image */}
       <div className="relative h-64 md:h-80 w-full">
         <img
-          src={collectionContract.imageUrl || "/placeholder.svg"}
+          src={collectionContract.imageUrl || "/fallback2.svg"}
           alt={`${collectionContract.name} cover`}
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-black bg-opacity-30"></div>
       </div>
 
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 mb-10">
         {/* Collection Header */}
         <div className="relative -mt-20 mb-8">
           <div className="relative z-10 bg-white rounded-lg border-4 border-black p-6 pt-24">
@@ -58,7 +118,7 @@ export default function CollectionDetails({collectionContract, firstNFTs}: {coll
                 <div className="absolute -bottom-3 -right-3 w-full h-full bg-black rounded-lg"></div>
                 <div className="relative z-10 h-32 w-32 rounded-lg overflow-hidden border-4 border-black bg-white">
                   <img
-                    src={collectionContract.imageUrl || "/placeholder.svg"}
+                    src={collectionContract.imageUrl || "/fallback1.svg"}
                     alt={collectionContract.name}
                     className="w-full h-full object-cover"
                   />
@@ -76,14 +136,39 @@ export default function CollectionDetails({collectionContract, firstNFTs}: {coll
                   <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
                     <span className="text-gray-600">Created by</span>
                     <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 rounded-full overflow-hidden relative border-2 border-black">
-                        <img
-                          src="/placeholder.svg"
-                          alt={collectionContract.owner}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <span className="font-bold">{collectionContract.owner}</span>
+                      {creatorLoading ? (
+                        <>
+                          <div className="h-6 w-6 rounded-full bg-gray-300 animate-pulse"></div>
+                          <div className="h-4 w-20 bg-gray-300 rounded animate-pulse"></div>
+                        </>
+                      ) : creatorProfile ? (
+                        <>
+                          <div className="h-6 w-6 rounded-full overflow-hidden relative border-2 border-black">
+                            <img
+                              src={creatorProfile.image || "/placeholder.svg"}
+                              alt={creatorProfile.name || collectionContract.owner}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <Link 
+                            href={creatorProfile.url} 
+                            className="font-bold hover:underline"
+                          >
+                            {creatorProfile.name || collectionContract.owner}
+                          </Link>
+                        </>
+                      ) : (
+                        <>
+                          <div className="h-6 w-6 rounded-full overflow-hidden relative border-2 border-black">
+                            <img
+                              src="/placeholder.svg"
+                              alt={collectionContract.owner}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <span className="font-bold">{collectionContract.owner}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -162,11 +247,11 @@ export default function CollectionDetails({collectionContract, firstNFTs}: {coll
         {/* Items Section */}
         <div className="mb-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-            <h2 className="text-2xl font-black">Items ({firstNFTs.length})</h2>
+            <h2 className="text-2xl font-black">Items ({allNFTs.length})</h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {firstNFTs.map((nft) => {
+            {allNFTs.map((nft) => {
               const marketplaceInfo = nftMarketplaceInfo[nft.id.toString()]
               const price = marketplaceInfo?.listing?.pricePerToken 
                 ? `${Number(marketplaceInfo.listing.pricePerToken) / 10 ** 18} GRASS`
@@ -180,18 +265,40 @@ export default function CollectionDetails({collectionContract, firstNFTs}: {coll
                   type={marketplaceInfo?.listing ? "listed" : "owned"}
                   image={getNFTMediaURL(nft)}
                   title={nft.metadata.name!}
-                  artist={{
-                    name: collectionContract.owner,
-                    avatar: "/placeholder.svg?height=40&width=40"
-                  }}
+                  artistAddress={collectionContract.owner}
                   price={price}
-                  owner={{
-                    name: nft.owner || "Unknown",
-                    avatar: "/placeholder.svg?height=40&width=40"
-                  }}
+                  lastSale={marketplaceInfo?.lastSale}
+                  owner={nft.owner || "Unknown"}
+                  artistProfile={allProfiles[collectionContract.owner]}
+                  ownerProfile={allProfiles[nft.owner || ""]}
+                  profilesLoading={profilesLoading}
                 />
               )
             })}
+          </div>
+
+          {/* Load More Button or End Message */}
+          <div className="flex justify-center py-8">
+            {hasMore ? (
+              <Button
+                onClick={fetchMoreNFTs}
+                disabled={loadingMore}
+                className="bg-gradient-to-r from-[#8F83E0] to-[#7F71D9] text-white font-black py-3 px-8 rounded-md border-2 border-black transform transition-transform duration-200 hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+              >
+                {loadingMore ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Loading...
+                  </>
+                ) : (
+                  'Load More NFTs'
+                )}
+              </Button>
+            ) : allNFTs.length > 0 ? (
+              <div className="text-gray-600 font-bold text-lg">
+                🎉 All NFTs loaded! ({allNFTs.length} total)
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

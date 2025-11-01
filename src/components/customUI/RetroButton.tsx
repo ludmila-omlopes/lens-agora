@@ -14,7 +14,7 @@ export const RetroButton = forwardRef<HTMLButtonElement, RetroButtonProps>(
         ref={ref}
         onClick={onClick}
         type={type}
-        className={`bg-retroPrimary text-retroText shadow-retro border-2 border-retroBorder px-4 py-2 rounded-retro hover:bg-retroHover transition-all ${className}`}
+        className={`bg-retroPrimary text-retroText shadow-retro border-2 border-retroBorder px-4 py-[0.4rem] rounded-retro hover:bg-retroHover transition-all ${className}`}
       >
         {children}
       </button>

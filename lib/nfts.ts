@@ -193,23 +193,43 @@ export async function listNFTs({ contractAdd, start, count }: { contractAdd: str
     const ismultiNFT = await isERC1155({ contract });
 
       if (issingleNFT) {
-          const nft = await getNFTs721({
+          const nfts = await getNFTs721({
           contract,
           start,
           count,
           useIndexer: true
           });
       
-          return nft;
+          // Get owner for each NFT
+          const nftsWithOwners = await Promise.all(nfts.map(async (nft) => {
+            try {
+              const ownerData = await readContract({
+                contract,
+                method: "function ownerOf(uint256 tokenId) view returns (address)",
+                params: [nft.id],
+              });
+              return {
+                ...nft,
+                owner: ownerData
+              };
+            } catch (error) {
+              console.error(`Error getting owner for token ${nft.id}:`, error);
+              return nft; // Return NFT without owner if call fails
+            }
+          }));
+      
+          return nftsWithOwners;
       }
       else if (ismultiNFT) {
-          const nft = await getNFTs1155({
+          const nfts = await getNFTs1155({
           contract,
           start,
           count
           });
       
-          return nft;
+          // For ERC1155, we don't need ownerOf as it can have multiple owners
+          // The getNFTs1155 should already include owner information
+          return nfts;
     }
   } catch (error) {
     console.error("Error in listNFTs:", error);

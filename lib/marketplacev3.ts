@@ -142,9 +142,10 @@ export async function getNFTMarketplaceInfo(tokenAddress: string, tokenId: bigin
   const marketplaceInfo = {} as MarketplaceInfo;
 
   // Parallelize the calls since they are independent
-  const [currentListing, currentAuction] = await Promise.all([
+  const [currentListing, currentAuction, lastSale] = await Promise.all([
     getCurrentListingForNFT(tokenAddress, tokenId),
-    getCurrentAuctionForNFT(tokenAddress, tokenId)
+    getCurrentAuctionForNFT(tokenAddress, tokenId),
+    getLastSaleForNFT(tokenAddress, tokenId)
   ]);
 
   if (currentAuction) {
@@ -154,11 +155,14 @@ export async function getNFTMarketplaceInfo(tokenAddress: string, tokenId: bigin
     });
     marketplaceInfo.winningBid = winningBid;
   }
+
+  console.log("lastSale: ", lastSale);
   
   marketplaceInfo.listing = currentListing!;
   marketplaceInfo.nftAddress = tokenAddress;
   marketplaceInfo.nftId = tokenId;
   marketplaceInfo.auction = currentAuction!;
+  marketplaceInfo.lastSale = lastSale!;
   
   return marketplaceInfo;
 }
@@ -627,4 +631,22 @@ export async function fetchNftActivity(
 
 
   return sortAndDedupe(items);
+}
+
+async function getLastSaleForNFT(tokenAddress: string, tokenId: bigint) {
+  const preparedEvent =  newSaleEvent({
+    assetContract: getAddress(tokenAddress)
+  });
+
+  const events = await getContractEvents({
+    contract,
+    events: [preparedEvent],
+
+  });
+
+  const lastSale = events.find((event) => 
+    event.args.tokenId === tokenId && 
+  getAddress(event.args.assetContract) === getAddress(tokenAddress)
+  );
+  return lastSale;
 }

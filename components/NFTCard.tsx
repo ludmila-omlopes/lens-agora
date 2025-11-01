@@ -1,7 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import { Profile } from "../lib/types"
+import { getContractEvents } from "thirdweb"
+import { contract } from "../lib/marketplacev3"
+import { newSaleEvent } from "thirdweb/extensions/marketplace"
+import { getAddress } from "thirdweb"
 
 // NFT types: "listed", "auction", "owned"
 type NFTCardProps = {
@@ -10,15 +15,12 @@ type NFTCardProps = {
   type: "listed" | "auction" | "owned"
   image: string
   title: string
-  artist: {
-    name: string
-    avatar: string
-  }
+  artistAddress: string
   price?: string
-  owner: {
-    name: string
-    avatar: string
-  }
+  owner: string
+  artistProfile?: Profile | null
+  ownerProfile?: Profile | null
+  profilesLoading?: boolean
   highestBid?: {
     amount: string
     bidder: {
@@ -26,32 +28,64 @@ type NFTCardProps = {
       avatar: string
     }
   }
+  lastSale?: any
 }
 
 export default function NFTCard({
-  id = "1",
-  contractAddress = "",
-  type = "listed",
-  image = "/placeholder.svg?height=400&width=400",
-  title = "Abstract Dimensions #08",
-  artist = {
-    name: "Sarah Chen",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  price = "0.85 ETH",
-  owner = {
-    name: "Current Owner",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  highestBid = {
-    amount: "0.91 ETH",
-    bidder: {
-      name: "Alex Johnson",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-  },
+  id,
+  contractAddress,
+  type,
+  image,
+  title,
+  artistAddress,
+  price,
+  owner,
+  artistProfile,
+  ownerProfile,
+  profilesLoading = false,
+  highestBid,
+  lastSale: _lastSaleProp,
 }: NFTCardProps) {
   const [isHovered, setIsHovered] = useState(false)
+  const [lastSaleFromEvents, setLastSaleFromEvents] = useState<any>(null)
+  const [loadingLastSale, setLoadingLastSale] = useState(false)
+
+  // Fetch last sale events for this NFT using getContractEvents
+  useEffect(() => {
+    if (type !== "owned" || !contractAddress || !id) return
+
+    const fetchLastSale = async () => {
+      try {
+        setLoadingLastSale(true)
+        const preparedEvent = newSaleEvent({
+          assetContract: getAddress(contractAddress)
+        })
+
+        const events = await getContractEvents({
+          contract,
+          events: [preparedEvent],
+        })
+
+        // Find the last sale event for this specific token ID
+        const lastSaleEvent = events.find((event: any) => 
+          event.args.tokenId?.toString() === id && 
+          getAddress(event.args.assetContract) === getAddress(contractAddress)
+        )
+
+        setLastSaleFromEvents(lastSaleEvent || null)
+      } catch (error) {
+        console.error("Error fetching last sale:", error)
+        setLastSaleFromEvents(null)
+      } finally {
+        setLoadingLastSale(false)
+      }
+    }
+
+    fetchLastSale()
+  }, [contractAddress, id, type])
+
+  // Use event-fetched last sale if available, otherwise fall back to prop
+  const lastSale = lastSaleFromEvents ?? _lastSaleProp
 
   // Function to truncate text to fit within card
   const truncateText = (text: string, maxLength: number = 12) => {
@@ -148,9 +182,23 @@ export default function NFTCard({
               className={`flex items-center gap-2 ${styles.sectionBg} p-2 rounded-md border-2 border-black inline-block`}
             >
               <div className="h-8 w-8 rounded-full overflow-hidden relative border-2 border-black">
-                <img src={artist.avatar || "/placeholder.svg"} alt={artist.name} className="w-full h-full object-cover" />
+                {profilesLoading ? (
+                  <div className="w-full h-full bg-gray-300 animate-pulse"></div>
+                ) : (
+                  <img 
+                    src={artistProfile?.image || "/placeholder.svg"} 
+                    alt={artistProfile?.name || artistAddress} 
+                    className="w-full h-full object-cover" 
+                  />
+                )}
               </div>
-              <span className="font-bold text-sm">Artist: {truncateText(artist.name)}</span>
+              <span className="font-bold text-sm">
+                Artist: {profilesLoading ? (
+                  <span className="animate-pulse bg-gray-300 h-4 w-16 rounded"></span>
+                ) : (
+                  truncateText(artistProfile?.name || artistAddress)
+                )}
+              </span>
             </div>
           </div>
 
@@ -165,30 +213,44 @@ export default function NFTCard({
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="h-8 w-8 rounded-full overflow-hidden relative border-2 border-black">
-                    <img src={owner.avatar || "/placeholder.svg"} alt={owner.name} className="w-full h-full object-cover" />
+                    {profilesLoading ? (
+                      <div className="w-full h-full bg-gray-300 animate-pulse"></div>
+                    ) : (
+                      <img 
+                        src={ownerProfile?.image || "/placeholder.svg"} 
+                        alt={ownerProfile?.name || owner} 
+                        className="w-full h-full object-cover" 
+                      />
+                    )}
                   </div>
-                  <span className="font-bold text-sm">Owner: {truncateText(owner.name)}</span>
+                  <span className="font-bold text-sm">
+                    {profilesLoading ? (
+                      <span className="animate-pulse bg-gray-300 h-4 w-16 rounded"></span>
+                    ) : (
+                      truncateText(ownerProfile?.name || owner)
+                    )}
+                  </span>
                 </div>
               </div>
             )}
 
-            {type === "auction" && (
+            {type === "auction" && highestBid && (
               <div
                 className={`flex justify-between items-center ${styles.sectionBg} p-3 rounded-md border-2 border-black`}
               >
                 <div className="flex flex-col">
                   <span className="text-sm font-bold text-gray-600">Highest Bid</span>
-                  <span className="font-black text-lg">{highestBid?.amount}</span>
+                  <span className="font-black text-lg">{highestBid.amount}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="h-8 w-8 rounded-full overflow-hidden relative border-2 border-black">
                     <img
-                      src={highestBid?.bidder.avatar || ""}
-                      alt={highestBid?.bidder.name || ""}
+                      src={highestBid.bidder.avatar || ""}
+                      alt={highestBid.bidder.name || ""}
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <span className="font-bold text-sm">Bidder: {truncateText(highestBid?.bidder.name || "")}</span>
+                  <span className="font-bold text-sm">Bidder: {truncateText(highestBid.bidder.name || "")}</span>
                 </div>
               </div>
             )}
@@ -199,13 +261,42 @@ export default function NFTCard({
               >
                 <div className="flex flex-col">
                   <span className="text-sm font-bold text-gray-600">Last Sold For</span>
-                  <span className="font-black text-lg">{price}</span>
+                  {loadingLastSale ? (
+                    <span className="font-black text-lg">
+                      <span className="animate-pulse bg-gray-300 h-6 w-24 rounded inline-block"></span>
+                    </span>
+                  ) : (
+                    <span className="font-black text-lg">
+                      {(() => {
+                        const salePrice = lastSale?.args?.totalPricePaid 
+                          ? Number(lastSale.args.totalPricePaid) / (10 ** 18) 
+                          : null;
+                        return (!lastSale || isNaN(salePrice as number)) 
+                          ? "Not sold" 
+                          : `${salePrice} GRASS`;
+                      })()}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="h-8 w-8 rounded-full overflow-hidden relative border-2 border-black">
-                    <img src={owner.avatar || "/placeholder.svg"} alt={owner.name} className="w-full h-full object-cover" />
+                    {profilesLoading ? (
+                      <div className="w-full h-full bg-gray-300 animate-pulse"></div>
+                    ) : (
+                      <img 
+                        src={ownerProfile?.image || "/placeholder.svg"} 
+                        alt={ownerProfile?.name || owner} 
+                        className="w-full h-full object-cover" 
+                      />
+                    )}
                   </div>
-                  <span className="font-bold text-sm">Owner: {truncateText(owner.name)}</span>
+                  <span className="font-bold text-sm">
+                    {profilesLoading ? (
+                      <span className="animate-pulse bg-gray-300 h-4 w-16 rounded"></span>
+                    ) : (
+                      truncateText(ownerProfile?.name || owner)
+                    )}
+                  </span>
                 </div>
               </div>
             )}

@@ -24,6 +24,7 @@ export type MarketplaceInfo = {
     listing: DirectListing;
     auction: EnglishAuction;
     winningBid:  any;
+    lastSale: any;
 };
 
 export type CollectionMarketplaceInfo = {
